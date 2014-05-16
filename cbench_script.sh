@@ -82,9 +82,13 @@ opendaylight_installed()
 install_opendaylight()
 {
     # Installs latest build of the OpenDaylight controller
-    if opendaylight_installed; then
-        cd $BASE_DIR
+    cd $BASE_DIR
+    # Remove old unzipped controller code
+    if [ -d "opendaylight" ]; then
         rm -rf opendaylight
+    fi
+    # Remove old zipped controller code
+    if [ -f distributions-base-0.1.2-SNAPSHOT-osgipackage.zip ]; then
         rm -f distributions-base-0.1.2-SNAPSHOT-osgipackage.zip
     fi
 
