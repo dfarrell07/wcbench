@@ -21,7 +21,7 @@ cbench_installed()
 install_cbench()
 {
     # Installs CBench, including its dependencies
-    # This function can be run more than once safely
+    # This function is idempotent
     # Note that I'm not currently building oflops/netfpga-packet-generator-c-library (optional)
     if cbench_installed; then
         return $EX_OK
