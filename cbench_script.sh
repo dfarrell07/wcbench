@@ -119,7 +119,12 @@ start_opendaylight()
 
 stop_opendaylight()
 {
-    kill $odl_pid
+    # Kills the ODL process if we started it here
+    if [ -n $odl_pid ]; then
+        kill $odl_pid
+    else
+        echo "Warning: OpenDaylight was unexpectedly not running" >&2
+    fi
 }
 
 run_cbench()
@@ -130,6 +135,8 @@ run_cbench()
 
     # Parse out average responses/second
     avg=`cbench -c localhost -p 6633 -m $MS_PER_TEST -l $TESTS_PER_SWITCH -s $NUM_SWITCHES -M $NUM_MACS 2>&1 | grep RESULT | awk '{print $8}' | awk -F'/' '{print $3}'`
+    echo "Average responses/second: $avg"
+    # TODO: Return avg to Jenkins
 }
 
 install_cbench
@@ -137,4 +144,3 @@ install_opendaylight
 start_opendaylight
 run_cbench
 stop_opendaylight
-echo "Average responses/second: $avg"
