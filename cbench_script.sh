@@ -22,6 +22,7 @@ install_cbench()
 {
     # Installs CBench, including its dependencies
     # This function is idempotent
+    # This has been tested on fresh cloud versions of Fedora 20 and CentOS 6.5
     # Note that I'm not currently building oflops/netfpga-packet-generator-c-library (optional)
     if cbench_installed; then
         return $EX_OK
@@ -42,7 +43,6 @@ install_cbench()
     ./boot.sh
 
     # Build oflops
-    # TODO: Git abs path
     ./configure --with-openflow-src-dir=$of_dir
     make
     sudo make install
@@ -55,6 +55,18 @@ install_cbench()
         echo "Successfully installed CBench"
         return $EX_OK
     fi
+}
+
+start_opendaylight()
+{
+    # Starts the OpenDaylight controller
+    # TODO
+}
+
+run_cbench()
+{
+    # Runs the CBench test against the controller
+    # TODO
 }
 
 install_cbench
