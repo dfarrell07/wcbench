@@ -7,7 +7,9 @@ EX_ODL_NOT_FOUND=66
 EX_OK=0
 EX_ERR=1
 
-BASE_DIR="~"
+BASE_DIR=$HOME
+NUM_SWITCHES=16
+NUM_MACS=100000
 
 cbench_installed()
 {
@@ -79,9 +81,14 @@ install_opendaylight()
 {
     # Installs latest build of the OpenDaylight controller
     if opendaylight_installed; then
-        # TODO: Nuke it? Check version?
-        return $EX_OK
+        cd $BASE_DIR
+        rm -rf opendaylight
+        rm -f distributions-base-0.1.2-SNAPSHOT-osgipackage.zip
     fi
+
+    # Install required packages
+    sudo yum install -y java-1.7.0-openjdk unzip wget which
+    #export JAVA_HOME=/usr/lib/jvm/java-1.7.0-openjdk-1.7.0.60-2.4.7.0.fc20.x86_64/jre/bin/java
 
     # Grab last successful build
     cd $BASE_DIR
@@ -104,6 +111,9 @@ start_opendaylight()
     cd $BASE_DIR/opendaylight
     ./run.sh -of13 -Xms1g -Xmx4g &
     odl_pid=$!
+    # TODO: Calibrate sleep time
+    sleep 120
+    # TODO: Give `dropAllPacketsRpc on` cmd, likely via Gogo script. Confirmed necessary.
 }
 
 stop_opendaylight()
@@ -114,7 +124,11 @@ stop_opendaylight()
 run_cbench()
 {
     # Runs the CBench test against the controller
-    # TODO
+    cbench -c localhost -p 6633 -m 1000 -l 10 -s $NUM_SWITCHES -M $NUM_MACS
 }
 
 install_cbench
+install_opendaylight
+start_opendaylight
+run_cbench
+stop_opendaylight
