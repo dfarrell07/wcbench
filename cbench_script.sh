@@ -10,6 +10,8 @@ EX_ERR=1
 BASE_DIR=$HOME
 NUM_SWITCHES=16
 NUM_MACS=100000
+TESTS_PER_SWITCH=20
+MS_PER_TEST=1000
 
 cbench_installed()
 {
@@ -88,7 +90,6 @@ install_opendaylight()
 
     # Install required packages
     sudo yum install -y java-1.7.0-openjdk unzip wget which
-    #export JAVA_HOME=/usr/lib/jvm/java-1.7.0-openjdk-1.7.0.60-2.4.7.0.fc20.x86_64/jre/bin/java
 
     # Grab last successful build
     cd $BASE_DIR
@@ -124,7 +125,11 @@ stop_opendaylight()
 run_cbench()
 {
     # Runs the CBench test against the controller
-    cbench -c localhost -p 6633 -m 1000 -l 10 -s $NUM_SWITCHES -M $NUM_MACS
+    # Ignore the first run, as it always seems to be very non-representative
+    cbench -c localhost -p 6633 -m $MS_PER_TEST -l $TESTS_PER_SWITCH -s $NUM_SWITCHES -M $NUM_MACS &> /dev/null
+
+    # Parse out average responses/second
+    avg=`cbench -c localhost -p 6633 -m $MS_PER_TEST -l $TESTS_PER_SWITCH -s $NUM_SWITCHES -M $NUM_MACS 2>&1 | grep RESULT | awk '{print $8}' | awk -F'/' '{print $3}'`
 }
 
 install_cbench
@@ -132,3 +137,4 @@ install_opendaylight
 start_opendaylight
 run_cbench
 stop_opendaylight
+echo "Average responses/second: $avg"
