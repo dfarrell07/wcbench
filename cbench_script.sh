@@ -21,13 +21,14 @@ cbench_installed()
 install_cbench()
 {
     # Installs CBench, including its dependencies
+    # This function can be run more than once safely
     # Note that I'm not currently building oflops/netfpga-packet-generator-c-library (optional)
     if cbench_installed; then
         return $EX_OK
     fi
 
     # Install required packages
-    sudo yum install -y net-snmp-devel libpcap-devel autoconf automake libtool libconfig-devel git
+    sudo yum install -y net-snmp-devel libpcap-devel autoconf make automake libtool libconfig-devel git
 
     # Clone repo that contains CBench
     git clone https://github.com/andi-bigswitch/oflops.git
