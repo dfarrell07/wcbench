@@ -3,8 +3,11 @@
 
 EX_USAGE=64
 EX_CBENCH_NOT_FOUND=65
+EX_ODL_NOT_FOUND=66
 EX_OK=0
 EX_ERR=1
+
+BASE_DIR="~"
 
 cbench_installed()
 {
@@ -32,6 +35,7 @@ install_cbench()
     sudo yum install -y net-snmp-devel libpcap-devel autoconf make automake libtool libconfig-devel git
 
     # Clone repo that contains CBench
+    cd $BASE_DIR
     git clone https://github.com/andi-bigswitch/oflops.git
 
     # CBench requires the OpenFlow source code, clone it
@@ -46,7 +50,7 @@ install_cbench()
     ./configure --with-openflow-src-dir=$of_dir
     make
     sudo make install
-    cd ..
+    cd $BASE_DIR
 
     if ! cbench_installed; then
         echo "Failed to install CBench" >&2
@@ -57,10 +61,54 @@ install_cbench()
     fi
 }
 
+opendaylight_installed()
+{
+    # Checks if OpenDaylight is installed in BASE_DIR
+    cd $BASE_DIR
+    # Ignoring symlink special case, don't care
+    if [ -d "opendaylight" ]; then
+        echo "OpenDaylight is installed"
+        return $EX_OK
+    else
+        echo "OpenDaylight is not installed"
+        return $EX_ODL_NOT_FOUND
+    fi
+}
+
+install_opendaylight()
+{
+    # Installs latest build of the OpenDaylight controller
+    if opendaylight_installed; then
+        # TODO: Nuke it? Check version?
+        return $EX_OK
+    fi
+
+    # Grab last successful build
+    cd $BASE_DIR
+    wget 'https://jenkins.opendaylight.org/integration/job/integration-project-centralized-integration/lastSuccessfulBuild/artifact/distributions/base/target/distributions-base-0.1.2-SNAPSHOT-osgipackage.zip'
+    unzip distributions-base-0.1.2-SNAPSHOT-osgipackage.zip
+
+    # Make some plugin changes that are apparently required for CBench
+    # TODO: Confirm these steps are required
+    cd opendaylight/plugins
+    wget 'https://jenkins.opendaylight.org/openflowplugin/job/openflowplugin-merge/lastSuccessfulBuild/org.opendaylight.openflowplugin$drop-test/artifact/org.opendaylight.openflowplugin/drop-test/0.0.3-SNAPSHOT/drop-test-0.0.3-SNAPSHOT.jar'
+    rm org.opendaylight.controller.samples.simpleforwarding-0.4.2-SNAPSHOT.jar
+    rm org.opendaylight.controller.arphandler-0.5.2-SNAPSHOT.jar
+
+    # TODO: Change controller log level to ERROR. Confirm this is necessary.
+}
+
 start_opendaylight()
 {
     # Starts the OpenDaylight controller
-    # TODO
+    cd $BASE_DIR/opendaylight
+    ./run.sh -of13 -Xms1g -Xmx4g &
+    odl_pid=$!
+}
+
+stop_opendaylight()
+{
+    kill $odl_pid
 }
 
 run_cbench()
