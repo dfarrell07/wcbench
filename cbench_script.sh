@@ -13,6 +13,23 @@ NUM_MACS=100000
 TESTS_PER_SWITCH=20
 MS_PER_TEST=1000
 
+# Print usage message
+usage()
+{
+cat << EOF
+Usage $0 [options]
+
+Setup and run CBench and OpenDaylight
+
+OPTIONS:
+    -h Show this message
+    -r Run CBench against OpenDaylight
+    -C Install CBench
+    -O Install last sucessful OpenDaylight build
+    -o Run OpenDaylight only
+EOF
+}
+
 cbench_installed()
 {
     # Checks if CBench is installed
@@ -143,8 +160,46 @@ run_cbench()
     # TODO: Return avg to Jenkins
 }
 
-install_cbench
-install_opendaylight
-start_opendaylight
-run_cbench
-stop_opendaylight
+# If executed with no options
+if [ $# -eq 0 ]; then
+    echo "No options"
+    install_cbench
+    install_opendaylight
+    start_opendaylight
+    run_cbench
+    stop_opendaylight
+    exit $EX_OK
+fi
+
+
+while getopts ":hrCOo" opt; do
+    case "$opt" in
+        h)
+            # Help message
+            usage
+            exit $EX_OK
+            ;;
+        r)
+            # Run CBench against OpenDaylight
+            start_opendaylight
+            run_cbench
+            stop_opendaylight
+            ;;
+        C)
+            # Install CBench
+            install_cbench
+            ;;
+        O)
+            # Install OpenDaylight
+            install_opendaylight
+            ;;
+        o)
+            # Run OpenDaylight only
+            start_opendaylight
+            echo "Use \`pkill java\` to stop OpenDaylight"
+            ;;
+        *)
+            usage
+            exit $EX_USAGE
+    esac
+done
