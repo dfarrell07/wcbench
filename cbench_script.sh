@@ -27,6 +27,7 @@ OPTIONS:
     -C Install CBench
     -O Install last sucessful OpenDaylight build
     -o Run OpenDaylight only
+    -c Cleanup by removing ODL and it's ZIP archive
 EOF
 }
 
@@ -152,17 +153,28 @@ run_cbench()
 {
     # Runs the CBench test against the controller
     # Ignore the first run, as it always seems to be very non-representative
+    echo "First CBench run will be discarded, as it's non-representative."
+    echo "Initial CBench run..."
     cbench -c localhost -p 6633 -m $MS_PER_TEST -l $TESTS_PER_SWITCH -s $NUM_SWITCHES -M $NUM_MACS &> /dev/null
 
     # Parse out average responses/second
-    avg=`cbench -c localhost -p 6633 -m $MS_PER_TEST -l $TESTS_PER_SWITCH -s $NUM_SWITCHES -M $NUM_MACS 2>&1 | grep RESULT | awk '{print $8}' | awk -F'/' '{print $3}'`
+    echo "Primary CBench run..."
+    avg=`cbench -c localhost -p 6633 -m $MS_PER_TEST -l $TESTS_PER_SWITCH -s $NUM_SWITCHES -M $NUM_MACS 2>&1 \
+        | grep RESULT | awk '{print $8}' | awk -F'/' '{print $3}'`
     echo "Average responses/second: $avg"
     # TODO: Return avg to Jenkins
 }
 
+cleanup()
+{
+    # Removes ODL and the ZIP archive we extracted it from
+    rm -rf $BASE_DIR/opendaylight
+    rm -rf $BASE_DIR/distributions-base-0.1.2-SNAPSHOT-osgipackage.zip
+}
+
 # If executed with no options
 if [ $# -eq 0 ]; then
-    echo "No options"
+    echo "No options given. Installing ODL+CBench and running test."
     install_cbench
     install_opendaylight
     start_opendaylight
@@ -172,7 +184,7 @@ if [ $# -eq 0 ]; then
 fi
 
 
-while getopts ":hrCOo" opt; do
+while getopts ":hrCOoc" opt; do
     case "$opt" in
         h)
             # Help message
@@ -197,6 +209,10 @@ while getopts ":hrCOo" opt; do
             # Run OpenDaylight only
             start_opendaylight
             echo "Use \`pkill java\` to stop OpenDaylight"
+            ;;
+        c)
+            # Remove ODL and it's ZIP
+            cleanup
             ;;
         *)
             usage
