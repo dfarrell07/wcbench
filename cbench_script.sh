@@ -102,48 +102,30 @@ run_cbench()
     # TODO: Return avg to Jenkins
 }
 
-opendaylight_installed()
-{
-    # Checks if OpenDaylight is installed in BASE_DIR
-    cd $BASE_DIR
-    # Ignoring symlink special case, don't care
-    if [ -d "opendaylight" ]; then
-        echo "OpenDaylight is installed"
-        return $EX_OK
-    else
-        echo "OpenDaylight is not installed"
-        return $EX_ODL_NOT_FOUND
-    fi
-}
-
 install_opendaylight()
 {
     # Installs latest build of the OpenDaylight controller
-    cd $BASE_DIR
     # Remove old unzipped controller code
-    if [ -d "opendaylight" ]; then
-        rm -rf opendaylight
+    if [ -d "$BASE_DIR/opendaylight" ]; then
+        rm -rf $BASE_DIR/opendaylight
     fi
     # Remove old zipped controller code
-    if [ -f distributions-base-0.1.2-SNAPSHOT-osgipackage.zip ]; then
-        rm -f distributions-base-0.1.2-SNAPSHOT-osgipackage.zip
+    if [ -f $BASE_DIR/distributions-base-0.1.2-SNAPSHOT-osgipackage.zip ]; then
+        rm -f $BASE_DIR/distributions-base-0.1.2-SNAPSHOT-osgipackage.zip
     fi
 
     # Install required packages
     sudo yum install -y java-1.7.0-openjdk unzip wget which
 
     # Grab last successful build
-    cd $BASE_DIR
-    wget 'https://jenkins.opendaylight.org/integration/job/integration-project-centralized-integration/lastSuccessfulBuild/artifact/distributions/base/target/distributions-base-0.1.2-SNAPSHOT-osgipackage.zip'
-    unzip distributions-base-0.1.2-SNAPSHOT-osgipackage.zip
+    wget -P $BASE_DIR 'https://jenkins.opendaylight.org/integration/job/integration-project-centralized-integration/lastSuccessfulBuild/artifact/distributions/base/target/distributions-base-0.1.2-SNAPSHOT-osgipackage.zip'
+    unzip -d $BASE_DIR $BASE_DIR/distributions-base-0.1.2-SNAPSHOT-osgipackage.zip
 
     # Make some plugin changes that are apparently required for CBench
-    cd opendaylight/plugins
-    # This step is confirmed required
-    wget 'https://jenkins.opendaylight.org/openflowplugin/job/openflowplugin-merge/lastSuccessfulBuild/org.opendaylight.openflowplugin$drop-test/artifact/org.opendaylight.openflowplugin/drop-test/0.0.3-SNAPSHOT/drop-test-0.0.3-SNAPSHOT.jar'
-    # TODO: Confirm these steps are required
-    rm org.opendaylight.controller.samples.simpleforwarding-0.4.2-SNAPSHOT.jar
-    rm org.opendaylight.controller.arphandler-0.5.2-SNAPSHOT.jar
+    PLUGIN_DIR=$BASE_DIR/opendaylight/plugins
+    wget -P $PLUGIN_DIR 'https://jenkins.opendaylight.org/openflowplugin/job/openflowplugin-merge/lastSuccessfulBuild/org.opendaylight.openflowplugin$drop-test/artifact/org.opendaylight.openflowplugin/drop-test/0.0.3-SNAPSHOT/drop-test-0.0.3-SNAPSHOT.jar'
+    rm $PLUGIN_DIR/org.opendaylight.controller.samples.simpleforwarding-0.4.2-SNAPSHOT.jar
+    rm $PLUGIN_DIR/org.opendaylight.controller.arphandler-0.5.2-SNAPSHOT.jar
 
     # TODO: Change controller log level to ERROR. Confirm this is necessary.
 }
@@ -184,7 +166,6 @@ cleanup()
     # Removes ODL and the ZIP archive we extracted it from
     rm -rf $BASE_DIR/opendaylight
     rm -rf $BASE_DIR/distributions-base-0.1.2-SNAPSHOT-osgipackage.zip
-    rm -rf $BASE_DIR/controller
 }
 
 # If executed with no options
@@ -200,7 +181,7 @@ if [ $# -eq 0 ]; then
 fi
 
 
-while getopts ":hrciIoOd" opt; do
+while getopts ":hrciod" opt; do
     case "$opt" in
         h)
             # Help message
