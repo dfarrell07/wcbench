@@ -86,6 +86,22 @@ install_cbench()
     fi
 }
 
+run_cbench()
+{
+    # Runs the CBench test against the controller
+    # Ignore the first run, as it always seems to be very non-representative
+    echo "First CBench run will be discarded, as it's non-representative."
+    echo "Initial CBench run..."
+    cbench -c localhost -p 6633 -m $MS_PER_TEST -l $TESTS_PER_SWITCH -s $NUM_SWITCHES -M $NUM_MACS &> /dev/null
+
+    # Parse out average responses/second
+    echo "Primary CBench run..."
+    avg=`cbench -c localhost -p 6633 -m $MS_PER_TEST -l $TESTS_PER_SWITCH -s $NUM_SWITCHES -M $NUM_MACS 2>&1 \
+        | grep RESULT | awk '{print $8}' | awk -F'/' '{print $3}'`
+    echo "Average responses/second: $avg"
+    # TODO: Return avg to Jenkins
+}
+
 opendaylight_installed()
 {
     # Checks if OpenDaylight is installed in BASE_DIR
@@ -98,47 +114,6 @@ opendaylight_installed()
         echo "OpenDaylight is not installed"
         return $EX_ODL_NOT_FOUND
     fi
-}
-
-build_odl_from_source()
-{
-    # TODO: Doc string
-    # Remove old unzipped controller code
-    if [ -d "$BASE_DIR/controller" ]; then
-        rm -rf $BASE_DIR/controller
-    fi
-
-    # Install required packages
-    sudo yum install -y java-1.7.0-openjdk maven
-
-    # Grab source
-    git clone https://git.opendaylight.org/gerrit/p/controller.git $BASE_DIR/controller
-
-    # Build with maven
-    cd $BASE_DIR/controller/opendaylight/distribution/opendaylight
-    mvn clean install
-
-    # Make some plugin changes that are apparently required for CBench
-    PLUGIN_DIR=$BASE_DIR/controller/opendaylight/distribution/opendaylight/target/distribution.opendaylight-osgipackage/opendaylight/plugins
-    wget -P $PLUGIN_DIR 'https://jenkins.opendaylight.org/openflowplugin/job/openflowplugin-merge/lastSuccessfulBuild/org.opendaylight.openflowplugin$drop-test/artifact/org.opendaylight.openflowplugin/drop-test/0.0.3-SNAPSHOT/drop-test-0.0.3-SNAPSHOT.jar'
-}
-
-issue_odl_config()
-{
-    # Send required config to OSGi
-    # This is a bit of a hack, but it's the only method I know of
-    # See: https://ask.opendaylight.org/question/146/issue-non-interactive-gogo-shell-command/
-    sudo yum install telnet -y
-    echo "dropAllPacketsRpc on" | telnet 127.0.0.1 $OSGI_PORT
-}
-
-start_odl_built_from_source()
-{
-    cd $BASE_DIR/controller/opendaylight/distribution/opendaylight/target/distribution.opendaylight-osgipackage/opendaylight
-    ./run.sh &
-    odl_pid=$!
-    # TODO: Calibrate sleep time
-    sleep 120
 }
 
 install_opendaylight()
@@ -177,11 +152,21 @@ start_opendaylight()
 {
     # Starts the OpenDaylight controller
     cd $BASE_DIR/opendaylight
+    # The -start flag makes OSGi listen on port 2400
     ./run.sh -start -of13 -Xms1g -Xmx4g &
     odl_pid=$!
     # TODO: Calibrate sleep time
     sleep 120
-    # TODO: Give `dropAllPacketsRpc on` cmd, likely via Gogo script. Confirmed necessary.
+    issue_odl_config
+}
+
+issue_odl_config()
+{
+    # Give dropAllPackets command via telnet to OSGi
+    # This is a bit of a hack, but it's the only method I know of
+    # See: https://ask.opendaylight.org/question/146/issue-non-interactive-gogo-shell-command/
+    sudo yum install telnet -y
+    echo "dropAllPacketsRpc on" | telnet 127.0.0.1 $OSGI_PORT
 }
 
 stop_opendaylight()
@@ -192,22 +177,6 @@ stop_opendaylight()
     else
         echo "Warning: OpenDaylight was unexpectedly not running" >&2
     fi
-}
-
-run_cbench()
-{
-    # Runs the CBench test against the controller
-    # Ignore the first run, as it always seems to be very non-representative
-    echo "First CBench run will be discarded, as it's non-representative."
-    echo "Initial CBench run..."
-    cbench -c localhost -p 6633 -m $MS_PER_TEST -l $TESTS_PER_SWITCH -s $NUM_SWITCHES -M $NUM_MACS &> /dev/null
-
-    # Parse out average responses/second
-    echo "Primary CBench run..."
-    avg=`cbench -c localhost -p 6633 -m $MS_PER_TEST -l $TESTS_PER_SWITCH -s $NUM_SWITCHES -M $NUM_MACS 2>&1 \
-        | grep RESULT | awk '{print $8}' | awk -F'/' '{print $3}'`
-    echo "Average responses/second: $avg"
-    # TODO: Return avg to Jenkins
 }
 
 cleanup()
@@ -224,6 +193,7 @@ if [ $# -eq 0 ]; then
     install_cbench
     install_opendaylight
     start_opendaylight
+    issue_odl_config
     run_cbench
     stop_opendaylight
     exit $EX_OK
@@ -240,6 +210,7 @@ while getopts ":hrciIoOd" opt; do
         r)
             # Run CBench against OpenDaylight
             start_opendaylight
+            issue_odl_config
             run_cbench
             stop_opendaylight
             ;;
@@ -251,18 +222,9 @@ while getopts ":hrciIoOd" opt; do
             # Install OpenDaylight from last successful build
             install_opendaylight
             ;;
-        I)
-            # Install OpenDaylight from source
-            build_odl_from_source
-            ;;
         o)
             # Run OpenDaylight from last successful build
             start_opendaylight
-            echo "Use \`pkill java\` to stop OpenDaylight"
-            ;;
-        O)
-            # Run OpenDaylight built from source
-            start_odl_built_from_source
             echo "Use \`pkill java\` to stop OpenDaylight"
             ;;
         d)
