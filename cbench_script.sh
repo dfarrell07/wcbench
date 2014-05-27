@@ -24,10 +24,12 @@ Setup and run CBench and OpenDaylight
 OPTIONS:
     -h Show this message
     -r Run CBench against OpenDaylight
-    -C Install CBench
-    -O Install last sucessful OpenDaylight build
-    -o Run OpenDaylight only
-    -c Cleanup by removing ODL and it's ZIP archive
+    -c Install CBench
+    -i Install ODL from last sucessful build
+    -I Install ODL from source
+    -o Run ODL from last sucessful build
+    -O Run ODL from source
+    -d Delete local ODL code
 EOF
 }
 
@@ -97,6 +99,41 @@ opendaylight_installed()
     fi
 }
 
+build_odl_from_source()
+{
+    # TODO: Doc string
+    # Remove old unzipped controller code
+    if [ -d "$BASE_DIR/controller" ]; then
+        rm -rf $BASE_DIR/controller
+    fi
+
+    # Install required packages
+    sudo yum install -y java-1.7.0-openjdk maven
+
+    # Grab source
+    git clone https://git.opendaylight.org/gerrit/p/controller.git $BASE_DIR/controller
+
+    # Build script to issue required non-interactive cmd to OSGi console
+    echo "dropAllPacketsRpc on" > $BASE_DIR/configure_cbench.gosh
+
+    # Build with maven
+    cd $BASE_DIR/controller/opendaylight/distribution/opendaylight
+    mvn clean install
+
+    # Make some plugin changes that are apparently required for CBench
+    PLUGIN_DIR=$BASE_DIR/controller/opendaylight/distribution/opendaylight/target/distribution.opendaylight-osgipackage/opendaylight/plugins
+    wget -P $PLUGIN_DIR 'https://jenkins.opendaylight.org/openflowplugin/job/openflowplugin-merge/lastSuccessfulBuild/org.opendaylight.openflowplugin$drop-test/artifact/org.opendaylight.openflowplugin/drop-test/0.0.3-SNAPSHOT/drop-test-0.0.3-SNAPSHOT.jar'
+}
+
+start_odl_built_from_source()
+{
+    cd $BASE_DIR/controller/opendaylight/distribution/opendaylight/target/distribution.opendaylight-osgipackage/opendaylight
+    ./run.sh &
+    odl_pid=$!
+    # TODO: Calibrate sleep time
+    sleep 120
+}
+
 install_opendaylight()
 {
     # Installs latest build of the OpenDaylight controller
@@ -119,9 +156,10 @@ install_opendaylight()
     unzip distributions-base-0.1.2-SNAPSHOT-osgipackage.zip
 
     # Make some plugin changes that are apparently required for CBench
-    # TODO: Confirm these steps are required
     cd opendaylight/plugins
+    # This step is confirmed required
     wget 'https://jenkins.opendaylight.org/openflowplugin/job/openflowplugin-merge/lastSuccessfulBuild/org.opendaylight.openflowplugin$drop-test/artifact/org.opendaylight.openflowplugin/drop-test/0.0.3-SNAPSHOT/drop-test-0.0.3-SNAPSHOT.jar'
+    # TODO: Confirm these steps are required
     rm org.opendaylight.controller.samples.simpleforwarding-0.4.2-SNAPSHOT.jar
     rm org.opendaylight.controller.arphandler-0.5.2-SNAPSHOT.jar
 
@@ -170,6 +208,7 @@ cleanup()
     # Removes ODL and the ZIP archive we extracted it from
     rm -rf $BASE_DIR/opendaylight
     rm -rf $BASE_DIR/distributions-base-0.1.2-SNAPSHOT-osgipackage.zip
+    rm -rf $BASE_DIR/controller
 }
 
 # If executed with no options
@@ -184,7 +223,7 @@ if [ $# -eq 0 ]; then
 fi
 
 
-while getopts ":hrCOoc" opt; do
+while getopts ":hrciIoOd" opt; do
     case "$opt" in
         h)
             # Help message
@@ -197,21 +236,30 @@ while getopts ":hrCOoc" opt; do
             run_cbench
             stop_opendaylight
             ;;
-        C)
+        c)
             # Install CBench
             install_cbench
             ;;
-        O)
-            # Install OpenDaylight
+        i)
+            # Install OpenDaylight from last successful build
             install_opendaylight
             ;;
+        I)
+            # Install OpenDaylight from source
+            build_odl_from_source
+            ;;
         o)
-            # Run OpenDaylight only
+            # Run OpenDaylight from last successful build
             start_opendaylight
             echo "Use \`pkill java\` to stop OpenDaylight"
             ;;
-        c)
-            # Remove ODL and it's ZIP
+        O)
+            # Run OpenDaylight built from source
+            start_odl_built_from_source
+            echo "Use \`pkill java\` to stop OpenDaylight"
+            ;;
+        d)
+            # Delete local ODL code
             cleanup
             ;;
         *)
