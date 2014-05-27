@@ -12,6 +12,7 @@ NUM_SWITCHES=16
 NUM_MACS=100000
 TESTS_PER_SWITCH=20
 MS_PER_TEST=1000
+OSGI_PORT=2400
 
 # Print usage message
 usage()
@@ -113,9 +114,6 @@ build_odl_from_source()
     # Grab source
     git clone https://git.opendaylight.org/gerrit/p/controller.git $BASE_DIR/controller
 
-    # Build script to issue required non-interactive cmd to OSGi console
-    echo "dropAllPacketsRpc on" > $BASE_DIR/configure_cbench.gosh
-
     # Build with maven
     cd $BASE_DIR/controller/opendaylight/distribution/opendaylight
     mvn clean install
@@ -123,6 +121,15 @@ build_odl_from_source()
     # Make some plugin changes that are apparently required for CBench
     PLUGIN_DIR=$BASE_DIR/controller/opendaylight/distribution/opendaylight/target/distribution.opendaylight-osgipackage/opendaylight/plugins
     wget -P $PLUGIN_DIR 'https://jenkins.opendaylight.org/openflowplugin/job/openflowplugin-merge/lastSuccessfulBuild/org.opendaylight.openflowplugin$drop-test/artifact/org.opendaylight.openflowplugin/drop-test/0.0.3-SNAPSHOT/drop-test-0.0.3-SNAPSHOT.jar'
+}
+
+issue_odl_config()
+{
+    # Send required config to OSGi
+    # This is a bit of a hack, but it's the only method I know of
+    # See: https://ask.opendaylight.org/question/146/issue-non-interactive-gogo-shell-command/
+    sudo yum install telnet -y
+    echo "dropAllPacketsRpc on" | telnet 127.0.0.1 $OSGI_PORT
 }
 
 start_odl_built_from_source()
@@ -170,7 +177,7 @@ start_opendaylight()
 {
     # Starts the OpenDaylight controller
     cd $BASE_DIR/opendaylight
-    ./run.sh -of13 -Xms1g -Xmx4g &
+    ./run.sh -start -of13 -Xms1g -Xmx4g &
     odl_pid=$!
     # TODO: Calibrate sleep time
     sleep 120
