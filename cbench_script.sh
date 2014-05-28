@@ -1,17 +1,26 @@
 #!/usr/bin/env sh
 # Script for running automated CBench regression tests
 
+# Exit codes
 EX_USAGE=64
 EX_CBENCH_NOT_FOUND=65
 EX_OK=0
 EX_ERR=1
 
-BASE_DIR=$HOME
+# Params for CBench test and ODL config
 NUM_SWITCHES=16
 NUM_MACS=100000
 TESTS_PER_SWITCH=20
 MS_PER_TEST=1000
 OSGI_PORT=2400
+
+# Paths used in this script
+BASE_DIR=$HOME
+OF_DIR="$BASE_DIR/openflow"
+OFLOPS_DIR=$BASE_DIR/oflops
+ODL_DIR=$BASE_DIR/opendaylight
+ODL_ZIP_DIR=$BASE_DIR/distributions-base-0.1.2-SNAPSHOT-osgipackage.zip
+PLUGIN_DIR=$ODL_DIR/plugins
 
 usage()
 {
@@ -59,19 +68,18 @@ install_cbench()
     sudo yum install -y net-snmp-devel libpcap-devel autoconf make automake libtool libconfig-devel git
 
     # Clone repo that contains CBench
-    git clone https://github.com/andi-bigswitch/oflops.git $BASE_DIR/oflops
+    git clone https://github.com/andi-bigswitch/oflops.git $OFLOPS_DIR
 
     # CBench requires the OpenFlow source code, clone it
-    of_dir="$BASE_DIR/openflow"
-    git clone git://gitosis.stanford.edu/openflow.git $of_dir
+    git clone git://gitosis.stanford.edu/openflow.git $OF_DIR
 
     # Build the oflops/configure file
     old_cwd=$PWD
-    cd $BASE_DIR/oflops
+    cd $OFLOPS_DIR
     ./boot.sh
 
     # Build oflops
-    ./configure --with-openflow-src-dir=$of_dir
+    ./configure --with-openflow-src-dir=$OF_DIR
     make
     sudo make install
     cd $old_cwd
@@ -105,18 +113,17 @@ install_opendaylight()
 {
     # Installs latest build of the OpenDaylight controller
     # Remove old controller code
-    rm -rf $BASE_DIR/opendaylight
-    rm -f $BASE_DIR/distributions-base-0.1.2-SNAPSHOT-osgipackage.zip
+    rm -rf $ODL_DIR
+    rm -f $ODL_ZIP_DIR
 
     # Install required packages
     sudo yum install -y java-1.7.0-openjdk unzip wget which
 
     # Grab last successful build
     wget -P $BASE_DIR 'https://jenkins.opendaylight.org/integration/job/integration-project-centralized-integration/lastSuccessfulBuild/artifact/distributions/base/target/distributions-base-0.1.2-SNAPSHOT-osgipackage.zip'
-    unzip -d $BASE_DIR $BASE_DIR/distributions-base-0.1.2-SNAPSHOT-osgipackage.zip
+    unzip -d $BASE_DIR $ODL_ZIP_DIR
 
     # Make some plugin changes that are apparently required for CBench
-    PLUGIN_DIR=$BASE_DIR/opendaylight/plugins
     wget -P $PLUGIN_DIR 'https://jenkins.opendaylight.org/openflowplugin/job/openflowplugin-merge/lastSuccessfulBuild/org.opendaylight.openflowplugin$drop-test/artifact/org.opendaylight.openflowplugin/drop-test/0.0.3-SNAPSHOT/drop-test-0.0.3-SNAPSHOT.jar'
     rm $PLUGIN_DIR/org.opendaylight.controller.samples.simpleforwarding-0.4.2-SNAPSHOT.jar
     rm $PLUGIN_DIR/org.opendaylight.controller.arphandler-0.5.2-SNAPSHOT.jar
@@ -128,9 +135,8 @@ start_opendaylight()
 {
     # Starts the OpenDaylight controller
     old_cwd=$PWD
-    cd $BASE_DIR/opendaylight
-    # The -start flag makes OSGi listen on port 2400
-    ./run.sh -start -of13 -Xms1g -Xmx4g &
+    cd $ODL_DIR
+    ./run.sh -start $OSGI_PORT -of13 -Xms1g -Xmx4g &
     cd $old_cwd
     odl_pid=$!
     # TODO: Calibrate sleep time
@@ -159,11 +165,11 @@ stop_opendaylight()
 
 cleanup()
 {
-    # Removes ODL and the ZIP archive we extracted it from
-    rm -rf $BASE_DIR/opendaylight
-    rm -rf $BASE_DIR/distributions-base-0.1.2-SNAPSHOT-osgipackage.zip
-    rm -rf $BASE_DIR/openflow
-    rm -rf $BASE_DIR/oflops
+    # Removes ODL zipped/unzipped, openflow code, CBench code
+    rm -rf $ODL_DIR
+    rm -rf $ODL_ZIP_DIR
+    rm -rf $OF_DIR
+    rm -rf $OFLOPS_DIR
 }
 
 # If executed with no options
@@ -208,7 +214,7 @@ while getopts ":hrciod" opt; do
             echo "Use \`pkill java\` to stop OpenDaylight"
             ;;
         d)
-            # Delete local ODL code
+            # Delete local ODL code (zipped/unzipped), OFLOPS code, OF code
             cleanup
             ;;
         *)
