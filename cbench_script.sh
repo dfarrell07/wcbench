@@ -3,7 +3,6 @@
 
 EX_USAGE=64
 EX_CBENCH_NOT_FOUND=65
-EX_ODL_NOT_FOUND=66
 EX_OK=0
 EX_ERR=1
 
@@ -14,10 +13,10 @@ TESTS_PER_SWITCH=20
 MS_PER_TEST=1000
 OSGI_PORT=2400
 
-# Print usage message
 usage()
 {
-cat << EOF
+    # Print usage message
+    cat << EOF
 Usage $0 [options]
 
 Setup and run CBench and OpenDaylight
@@ -60,22 +59,22 @@ install_cbench()
     sudo yum install -y net-snmp-devel libpcap-devel autoconf make automake libtool libconfig-devel git
 
     # Clone repo that contains CBench
-    cd $BASE_DIR
-    git clone https://github.com/andi-bigswitch/oflops.git
+    git clone https://github.com/andi-bigswitch/oflops.git $BASE_DIR/oflops
 
     # CBench requires the OpenFlow source code, clone it
-    git clone git://gitosis.stanford.edu/openflow.git
-    of_dir="$PWD/openflow"
+    of_dir="$BASE_DIR/openflow"
+    git clone git://gitosis.stanford.edu/openflow.git $of_dir
 
     # Build the oflops/configure file
-    cd oflops
+    old_cwd=$PWD
+    cd $BASE_DIR/oflops
     ./boot.sh
 
     # Build oflops
     ./configure --with-openflow-src-dir=$of_dir
     make
     sudo make install
-    cd $BASE_DIR
+    cd $old_cwd
 
     if ! cbench_installed; then
         echo "Failed to install CBench" >&2
@@ -99,20 +98,15 @@ run_cbench()
     avg=`cbench -c localhost -p 6633 -m $MS_PER_TEST -l $TESTS_PER_SWITCH -s $NUM_SWITCHES -M $NUM_MACS 2>&1 \
         | grep RESULT | awk '{print $8}' | awk -F'/' '{print $3}'`
     echo "Average responses/second: $avg"
-    # TODO: Return avg to Jenkins
+    # TODO: Store results in CVS format, integrate with Jenkins Plot Plugin
 }
 
 install_opendaylight()
 {
     # Installs latest build of the OpenDaylight controller
-    # Remove old unzipped controller code
-    if [ -d "$BASE_DIR/opendaylight" ]; then
-        rm -rf $BASE_DIR/opendaylight
-    fi
-    # Remove old zipped controller code
-    if [ -f $BASE_DIR/distributions-base-0.1.2-SNAPSHOT-osgipackage.zip ]; then
-        rm -f $BASE_DIR/distributions-base-0.1.2-SNAPSHOT-osgipackage.zip
-    fi
+    # Remove old controller code
+    rm -rf $BASE_DIR/opendaylight
+    rm -f $BASE_DIR/distributions-base-0.1.2-SNAPSHOT-osgipackage.zip
 
     # Install required packages
     sudo yum install -y java-1.7.0-openjdk unzip wget which
@@ -133,9 +127,11 @@ install_opendaylight()
 start_opendaylight()
 {
     # Starts the OpenDaylight controller
+    old_cwd=$PWD
     cd $BASE_DIR/opendaylight
     # The -start flag makes OSGi listen on port 2400
     ./run.sh -start -of13 -Xms1g -Xmx4g &
+    cd $old_cwd
     odl_pid=$!
     # TODO: Calibrate sleep time
     sleep 120
@@ -147,7 +143,7 @@ issue_odl_config()
     # Give dropAllPackets command via telnet to OSGi
     # This is a bit of a hack, but it's the only method I know of
     # See: https://ask.opendaylight.org/question/146/issue-non-interactive-gogo-shell-command/
-    sudo yum install telnet -y
+    sudo yum install -y telnet
     echo "dropAllPacketsRpc on" | telnet 127.0.0.1 $OSGI_PORT
 }
 
@@ -166,6 +162,8 @@ cleanup()
     # Removes ODL and the ZIP archive we extracted it from
     rm -rf $BASE_DIR/opendaylight
     rm -rf $BASE_DIR/distributions-base-0.1.2-SNAPSHOT-osgipackage.zip
+    rm -rf $BASE_DIR/openflow
+    rm -rf $BASE_DIR/oflops
 }
 
 # If executed with no options
@@ -177,6 +175,7 @@ if [ $# -eq 0 ]; then
     issue_odl_config
     run_cbench
     stop_opendaylight
+    cleanup
     exit $EX_OK
 fi
 
