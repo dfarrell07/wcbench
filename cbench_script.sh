@@ -35,9 +35,7 @@ OPTIONS:
     -r Run CBench against OpenDaylight
     -c Install CBench
     -i Install ODL from last sucessful build
-    -I Install ODL from source
     -o Run ODL from last sucessful build
-    -O Run ODL from source
     -d Delete local ODL code
 EOF
 }
