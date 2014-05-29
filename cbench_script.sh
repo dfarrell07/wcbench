@@ -3,7 +3,7 @@
 
 # Exit codes
 EX_USAGE=64
-EX_CBENCH_NOT_FOUND=65
+EX_NOT_FOUND=65
 EX_OK=0
 EX_ERR=1
 
@@ -16,7 +16,7 @@ OSGI_PORT=2400
 
 # Paths used in this script
 BASE_DIR=$HOME
-OF_DIR="$BASE_DIR/openflow"
+OF_DIR=$BASE_DIR/openflow
 OFLOPS_DIR=$BASE_DIR/oflops
 ODL_DIR=$BASE_DIR/opendaylight
 ODL_ZIP_DIR=$BASE_DIR/distributions-base-0.1.2-SNAPSHOT-osgipackage.zip
@@ -48,7 +48,7 @@ cbench_installed()
         return $EX_OK
     else
         echo "CBench is not installed"
-        return $EX_CBENCH_NOT_FOUND
+        return $EX_NOT_FOUND
     fi
 }
 
@@ -111,19 +111,25 @@ install_opendaylight()
 {
     # Installs latest build of the OpenDaylight controller
     # Remove old controller code
+    echo "Removing $ODL_DIR"
     rm -rf $ODL_DIR
+    echo "Removing $ODL_ZIP_DIR"
     rm -f $ODL_ZIP_DIR
 
     # Install required packages
     sudo yum install -y java-1.7.0-openjdk unzip wget which
 
     # Grab last successful build
+    echo "Downloading last successful ODL build"
     wget -P $BASE_DIR 'https://jenkins.opendaylight.org/integration/job/integration-project-centralized-integration/lastSuccessfulBuild/artifact/distributions/base/target/distributions-base-0.1.2-SNAPSHOT-osgipackage.zip'
     unzip -d $BASE_DIR $ODL_ZIP_DIR
 
     # Make some plugin changes that are apparently required for CBench
+    echo "Downloading openflowplugin"
     wget -P $PLUGIN_DIR 'https://jenkins.opendaylight.org/openflowplugin/job/openflowplugin-merge/lastSuccessfulBuild/org.opendaylight.openflowplugin$drop-test/artifact/org.opendaylight.openflowplugin/drop-test/0.0.3-SNAPSHOT/drop-test-0.0.3-SNAPSHOT.jar'
+    echo "Removing simpleforwarding plugin"
     rm $PLUGIN_DIR/org.opendaylight.controller.samples.simpleforwarding-0.4.2-SNAPSHOT.jar
+    echo "Removing arphandler plugin"
     rm $PLUGIN_DIR/org.opendaylight.controller.arphandler-0.5.2-SNAPSHOT.jar
 
     # TODO: Change controller log level to ERROR. Confirm this is necessary.
@@ -134,6 +140,7 @@ start_opendaylight()
     # Starts the OpenDaylight controller
     old_cwd=$PWD
     cd $ODL_DIR
+    echo "Starting OpenDaylight"
     ./run.sh -start $OSGI_PORT -of13 -Xms1g -Xmx4g &
     cd $old_cwd
     odl_pid=$!
@@ -147,7 +154,9 @@ issue_odl_config()
     # Give dropAllPackets command via telnet to OSGi
     # This is a bit of a hack, but it's the only method I know of
     # See: https://ask.opendaylight.org/question/146/issue-non-interactive-gogo-shell-command/
-    sudo yum install -y telnet
+    if ! command -v telnet &>/dev/null; then
+        sudo yum install -y telnet
+    fi
     echo "dropAllPacketsRpc on" | telnet 127.0.0.1 $OSGI_PORT
 }
 
@@ -155,6 +164,7 @@ stop_opendaylight()
 {
     # Kills the ODL process if we started it here
     if [ -n $odl_pid ]; then
+        echo "Killing ODL started here with PID $odl_pid"
         kill $odl_pid
     else
         echo "Warning: OpenDaylight was unexpectedly not running" >&2
@@ -164,9 +174,13 @@ stop_opendaylight()
 cleanup()
 {
     # Removes ODL zipped/unzipped, openflow code, CBench code
+    echo "Removing $ODL_DIR"
     rm -rf $ODL_DIR
+    echo "Removing $ODL_ZIP_DIR"
     rm -rf $ODL_ZIP_DIR
+    echo "Removing $OF_DIR"
     rm -rf $OF_DIR
+    echo "Removing $OFLOPS_DIR"
     rm -rf $OFLOPS_DIR
 }
 
