@@ -19,7 +19,8 @@ BASE_DIR=$HOME
 OF_DIR=$BASE_DIR/openflow
 OFLOPS_DIR=$BASE_DIR/oflops
 ODL_DIR=$BASE_DIR/opendaylight
-ODL_ZIP_DIR=$BASE_DIR/distributions-base-0.1.2-SNAPSHOT-osgipackage.zip
+ODL_ZIP="distributions-base-0.1.2-SNAPSHOT-osgipackage.zip"
+ODL_ZIP_DIR=$BASE_DIR/$ODL_ZIP
 PLUGIN_DIR=$ODL_DIR/plugins
 
 usage()
@@ -111,17 +112,23 @@ install_opendaylight()
 {
     # Installs latest build of the OpenDaylight controller
     # Remove old controller code
-    echo "Removing $ODL_DIR"
-    rm -rf $ODL_DIR
-    echo "Removing $ODL_ZIP_DIR"
-    rm -f $ODL_ZIP_DIR
+    if [ -d $ODL_DIR ]
+    then
+        echo "Removing $ODL_DIR"
+        rm -rf $ODL_DIR
+    fi
+    if [ -d $ODL_ZIP_DIR ]
+    then
+        echo "Removing $ODL_ZIP_DIR"
+        rm -f $ODL_ZIP_DIR
+    fi
 
     # Install required packages
     sudo yum install -y java-1.7.0-openjdk unzip wget
 
     # Grab last successful build
     echo "Downloading last successful ODL build"
-    wget -P $BASE_DIR 'https://jenkins.opendaylight.org/integration/job/integration-project-centralized-integration/lastSuccessfulBuild/artifact/distributions/base/target/distributions-base-0.1.2-SNAPSHOT-osgipackage.zip'
+    wget -P $BASE_DIR "https://jenkins.opendaylight.org/integration/job/integration-project-centralized-integration/lastSuccessfulBuild/artifact/distributions/base/target/$ODL_ZIP"
     unzip -d $BASE_DIR $ODL_ZIP_DIR
 
     # Make some plugin changes that are apparently required for CBench
@@ -138,14 +145,16 @@ install_opendaylight()
 start_opendaylight()
 {
     # Starts the OpenDaylight controller
-    # TODO: Use run.sh -status to check if ODL is already running
     # TODO: Make sure ODL is installed
     old_cwd=$PWD
     cd $ODL_DIR
-    echo "Starting OpenDaylight"
-    ./run.sh -start $OSGI_PORT -of13 -Xms1g -Xmx4g &
+    if ! ./run.sh -status; then
+        echo "Starting OpenDaylight"
+        ./run.sh -start $OSGI_PORT -of13 -Xms1g -Xmx4g
+    else
+        echo "OpenDaylight is already running"
+    fi
     cd $old_cwd
-    odl_pid=$!
     # TODO: Calibrate sleep time
     sleep 120
     issue_odl_config
@@ -164,14 +173,16 @@ issue_odl_config()
 
 stop_opendaylight()
 {
-    # Kills the ODL process if we started it here
-    # TODO: Use telnet `exit` to stop ODL
-    if [ -n $odl_pid ]; then
-        echo "Killing ODL started here with PID $odl_pid"
-        kill $odl_pid
+    # Stops OpenDaylight using run.sh
+    old_cwd=$PWD
+    cd $ODL_DIR
+    if ./run.sh -status; then
+        echo "Stopping OpenDaylight"
+        ./run.sh -stop
     else
-        echo "Warning: OpenDaylight was unexpectedly not running" >&2
+        echo "OpenDaylight isn't running"
     fi
+    cd $old_cwd
 }
 
 cleanup()
