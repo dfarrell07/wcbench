@@ -138,6 +138,8 @@ install_opendaylight()
 start_opendaylight()
 {
     # Starts the OpenDaylight controller
+    # TODO: Use run.sh -status to check if ODL is already running
+    # TODO: Make sure ODL is installed
     old_cwd=$PWD
     cd $ODL_DIR
     echo "Starting OpenDaylight"
@@ -190,7 +192,6 @@ if [ $# -eq 0 ]; then
     install_cbench
     install_opendaylight
     start_opendaylight
-    issue_odl_config
     run_cbench
     stop_opendaylight
     cleanup
@@ -208,7 +209,6 @@ while getopts ":hrciod" opt; do
         r)
             # Run CBench against OpenDaylight
             start_opendaylight
-            issue_odl_config
             run_cbench
             stop_opendaylight
             ;;
