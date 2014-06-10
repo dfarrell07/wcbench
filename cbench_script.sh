@@ -117,7 +117,7 @@ install_opendaylight()
     rm -f $ODL_ZIP_DIR
 
     # Install required packages
-    sudo yum install -y java-1.7.0-openjdk unzip wget which
+    sudo yum install -y java-1.7.0-openjdk unzip wget
 
     # Grab last successful build
     echo "Downloading last successful ODL build"
@@ -165,6 +165,7 @@ issue_odl_config()
 stop_opendaylight()
 {
     # Kills the ODL process if we started it here
+    # TODO: Use telnet `exit` to stop ODL
     if [ -n $odl_pid ]; then
         echo "Killing ODL started here with PID $odl_pid"
         kill $odl_pid
