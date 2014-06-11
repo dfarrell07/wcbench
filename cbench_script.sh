@@ -37,6 +37,7 @@ OPTIONS:
     -c Install CBench
     -i Install ODL from last sucessful build
     -o Run ODL from last sucessful build
+    -k Kill OpenDaylight
     -d Delete local ODL code
 EOF
 }
@@ -145,7 +146,10 @@ install_opendaylight()
 start_opendaylight()
 {
     # Starts the OpenDaylight controller
-    # TODO: Make sure ODL is installed
+    if [ ! -d $ODL_DIR ]; then
+        echo "Expected $ODL_DIR, assuming ODL isn't installed"
+        return $EX_NOT_FOUND
+    fi
     old_cwd=$PWD
     cd $ODL_DIR
     if ! ./run.sh -status; then
@@ -188,14 +192,22 @@ stop_opendaylight()
 cleanup()
 {
     # Removes ODL zipped/unzipped, openflow code, CBench code
-    echo "Removing $ODL_DIR"
-    rm -rf $ODL_DIR
-    echo "Removing $ODL_ZIP_DIR"
-    rm -rf $ODL_ZIP_DIR
-    echo "Removing $OF_DIR"
-    rm -rf $OF_DIR
-    echo "Removing $OFLOPS_DIR"
-    rm -rf $OFLOPS_DIR
+    if [ -d $ODL_DIR ]; then
+        echo "Removing $ODL_DIR"
+        rm -rf $ODL_DIR
+    fi
+    if [ -f $ODL_ZIP_DIR ]; then
+        echo "Removing $ODL_ZIP_DIR"
+        rm -rf $ODL_ZIP_DIR
+    fi
+    if [ -d $OF_DIR ]; then
+        echo "Removing $OF_DIR"
+        rm -rf $OF_DIR
+    fi
+    if [ -d $OFLOPS_DIR ]; then
+        echo "Removing $OFLOPS_DIR"
+        rm -rf $OFLOPS_DIR
+    fi
 }
 
 # If executed with no options
@@ -211,7 +223,7 @@ if [ $# -eq 0 ]; then
 fi
 
 
-while getopts ":hrciod" opt; do
+while getopts ":hrciokd" opt; do
     case "$opt" in
         h)
             # Help message
@@ -220,7 +232,14 @@ while getopts ":hrciod" opt; do
             ;;
         r)
             # Run CBench against OpenDaylight
+            # TODO: This isn't working, expected return value, getting echo'd string
             start_opendaylight
+            odl_status=$?
+            echo "odl_status is $odl_status"
+            if [[ $odl_status -eq $EX_NOT_FOUND ]]; then
+                echo "OpenDaylight isn't installed, can't run test"
+                exit $EX_ERR
+            fi
             run_cbench
             stop_opendaylight
             ;;
@@ -236,6 +255,10 @@ while getopts ":hrciod" opt; do
             # Run OpenDaylight from last successful build
             start_opendaylight
             echo "Use \`pkill java\` to stop OpenDaylight"
+            ;;
+        k)
+            # Kill OpenDaylight
+            stop_opendaylight
             ;;
         d)
             # Delete local ODL code (zipped/unzipped), OFLOPS code, OF code
