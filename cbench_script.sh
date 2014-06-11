@@ -143,13 +143,16 @@ install_opendaylight()
     # TODO: Change controller log level to ERROR. Confirm this is necessary.
 }
 
+odl_installed()
+{
+    if [ ! -d $ODL_DIR ]; then
+        return $EX_NOT_FOUND
+    fi
+}
+
 start_opendaylight()
 {
     # Starts the OpenDaylight controller
-    if [ ! -d $ODL_DIR ]; then
-        echo "Expected $ODL_DIR, assuming ODL isn't installed"
-        return $EX_NOT_FOUND
-    fi
     old_cwd=$PWD
     cd $ODL_DIR
     if ! ./run.sh -status; then
@@ -232,11 +235,7 @@ while getopts ":hrciokd" opt; do
             ;;
         r)
             # Run CBench against OpenDaylight
-            # TODO: This isn't working, expected return value, getting echo'd string
-            start_opendaylight
-            odl_status=$?
-            echo "odl_status is $odl_status"
-            if [[ $odl_status -eq $EX_NOT_FOUND ]]; then
+            if ! odl_installed; then
                 echo "OpenDaylight isn't installed, can't run test"
                 exit $EX_ERR
             fi
@@ -253,11 +252,18 @@ while getopts ":hrciokd" opt; do
             ;;
         o)
             # Run OpenDaylight from last successful build
+            if ! odl_installed; then
+                echo "OpenDaylight isn't installed, can't start it"
+                exit $EX_ERR
+            fi
             start_opendaylight
-            echo "Use \`pkill java\` to stop OpenDaylight"
             ;;
         k)
             # Kill OpenDaylight
+            if ! odl_installed; then
+                echo "OpenDaylight isn't installed, can't stop it"
+                exit $EX_ERR
+            fi
             stop_opendaylight
             ;;
         d)
