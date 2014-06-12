@@ -13,6 +13,7 @@ NUM_MACS=100000
 TESTS_PER_SWITCH=20
 MS_PER_TEST=1000
 OSGI_PORT=2400
+ODL_STARTUP_DELAY=120
 
 # Paths used in this script
 BASE_DIR=$HOME
@@ -125,16 +126,17 @@ install_opendaylight()
     fi
 
     # Install required packages
-    sudo yum install -y java-1.7.0-openjdk unzip wget
+    sudo yum install -y java-1.7.0-openjdk unzip wget &> /dev/null
 
     # Grab last successful build
     echo "Downloading last successful ODL build"
-    wget -P $BASE_DIR "https://jenkins.opendaylight.org/integration/job/integration-project-centralized-integration/lastSuccessfulBuild/artifact/distributions/base/target/$ODL_ZIP"
-    unzip -d $BASE_DIR $ODL_ZIP_PATH
+    wget -P $BASE_DIR "https://jenkins.opendaylight.org/integration/job/integration-project-centralized-integration/lastSuccessfulBuild/artifact/distributions/base/target/$ODL_ZIP" &> /dev/null
+    echo "Unzipping last successful ODL build"
+    unzip -d $BASE_DIR $ODL_ZIP_PATH &> /dev/null
 
     # Make some plugin changes that are apparently required for CBench
     echo "Downloading openflowplugin"
-    wget -P $PLUGIN_DIR 'https://jenkins.opendaylight.org/openflowplugin/job/openflowplugin-merge/lastSuccessfulBuild/org.opendaylight.openflowplugin$drop-test/artifact/org.opendaylight.openflowplugin/drop-test/0.0.3-SNAPSHOT/drop-test-0.0.3-SNAPSHOT.jar'
+    wget -P $PLUGIN_DIR 'https://jenkins.opendaylight.org/openflowplugin/job/openflowplugin-merge/lastSuccessfulBuild/org.opendaylight.openflowplugin$drop-test/artifact/org.opendaylight.openflowplugin/drop-test/0.0.3-SNAPSHOT/drop-test-0.0.3-SNAPSHOT.jar' &> /dev/null
     echo "Removing simpleforwarding plugin"
     rm $PLUGIN_DIR/org.opendaylight.controller.samples.simpleforwarding-0.4.2-SNAPSHOT.jar
     echo "Removing arphandler plugin"
@@ -171,11 +173,16 @@ start_opendaylight()
         return $EX_OK
     else
         echo "Starting OpenDaylight"
-        ./run.sh -start $OSGI_PORT -of13 -Xms1g -Xmx4g
+        ./run.sh -start $OSGI_PORT -of13 -Xms1g -Xmx4g &> /dev/null
     fi
     cd $old_cwd
     # TODO: Smarter block until ODL is actually up
-    sleep 60
+    echo "Giving ODL $ODL_STARTUP_DELAY seconds to get up and running"
+    while [ $ODL_STARTUP_DELAY -gt 0 ]; do
+        sleep 10
+        let ODL_STARTUP_DELAY=ODL_STARTUP_DELAY-10
+        echo "$ODL_STARTUP_DELAY seconds remaining"
+    done
     issue_odl_config
 }
 
@@ -187,8 +194,8 @@ issue_odl_config()
     if ! command -v telnet &>/dev/null; then
         sudo yum install -y telnet
     fi
-    echo "Issuing \`dropAllPacketsRpc on\` command via telnet to localhost:2400"
-    echo "dropAllPacketsRpc on" | telnet 127.0.0.1 $OSGI_PORT
+    echo "Issuing \`dropAllPacketsRpc on\` command via telnet to localhost:$OSGI_PORT"
+    echo "dropAllPacketsRpc on" | telnet localhost $OSGI_PORT &> /dev/null
 }
 
 stop_opendaylight()
