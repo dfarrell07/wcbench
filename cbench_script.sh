@@ -195,7 +195,7 @@ issue_odl_config()
         sudo yum install -y telnet
     fi
     echo "Issuing \`dropAllPacketsRpc on\` command via telnet to localhost:$OSGI_PORT"
-    echo "dropAllPacketsRpc on" | telnet localhost $OSGI_PORT &> /dev/null
+    (sleep 1; echo dropAllPacketsRpc on; sleep 1) | telnet localhost $OSGI_PORT
 }
 
 stop_opendaylight()
