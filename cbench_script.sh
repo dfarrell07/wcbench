@@ -118,7 +118,7 @@ install_opendaylight()
         echo "Removing $ODL_DIR"
         rm -rf $ODL_DIR
     fi
-    if [ -d $ODL_ZIP_DIR ]
+    if [ -f $ODL_ZIP_DIR ]
     then
         echo "Removing $ODL_ZIP_DIR"
         rm -f $ODL_ZIP_DIR
@@ -150,20 +150,32 @@ odl_installed()
     fi
 }
 
+odl_started()
+{
+    cd $ODL_DIR
+    if ./run.sh -status &> /dev/null; then
+        return $EX_OK
+    else
+        return $EX_NOT_FOUND
+    fi
+    cd $old_cwd
+}
+
 start_opendaylight()
 {
     # Starts the OpenDaylight controller
     old_cwd=$PWD
     cd $ODL_DIR
-    if ! ./run.sh -status; then
+    if odl_started; then
+        echo "OpenDaylight is already running"
+        return $EX_OK
+    else
         echo "Starting OpenDaylight"
         ./run.sh -start $OSGI_PORT -of13 -Xms1g -Xmx4g
-    else
-        echo "OpenDaylight is already running"
     fi
     cd $old_cwd
-    # TODO: Calibrate sleep time
-    sleep 120
+    # TODO: Block until ODL is actually up
+    sleep 60
     issue_odl_config
 }
 
@@ -183,9 +195,9 @@ stop_opendaylight()
     # Stops OpenDaylight using run.sh
     old_cwd=$PWD
     cd $ODL_DIR
-    if ./run.sh -status; then
+    if odl_started; then
         echo "Stopping OpenDaylight"
-        ./run.sh -stop
+        ./run.sh -stop &> /dev/null
     else
         echo "OpenDaylight isn't running"
     fi
@@ -239,8 +251,11 @@ while getopts ":hrciokd" opt; do
                 echo "OpenDaylight isn't installed, can't run test"
                 exit $EX_ERR
             fi
+            if ! odl_started; then
+                echo "OpenDaylight isn't started, can't run test"
+                exit $EX_ERR
+            fi
             run_cbench
-            stop_opendaylight
             ;;
         c)
             # Install CBench
@@ -262,6 +277,10 @@ while getopts ":hrciokd" opt; do
             # Kill OpenDaylight
             if ! odl_installed; then
                 echo "OpenDaylight isn't installed, can't stop it"
+                exit $EX_ERR
+            fi
+            if ! odl_started; then
+                echo "OpenDaylight isn't started, can't stop it"
                 exit $EX_ERR
             fi
             stop_opendaylight
