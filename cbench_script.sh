@@ -20,7 +20,7 @@ OF_DIR=$BASE_DIR/openflow
 OFLOPS_DIR=$BASE_DIR/oflops
 ODL_DIR=$BASE_DIR/opendaylight
 ODL_ZIP="distributions-base-0.1.2-SNAPSHOT-osgipackage.zip"
-ODL_ZIP_DIR=$BASE_DIR/$ODL_ZIP
+ODL_ZIP_PATH=$BASE_DIR/$ODL_ZIP
 PLUGIN_DIR=$ODL_DIR/plugins
 
 usage()
@@ -118,10 +118,10 @@ install_opendaylight()
         echo "Removing $ODL_DIR"
         rm -rf $ODL_DIR
     fi
-    if [ -f $ODL_ZIP_DIR ]
+    if [ -f $ODL_ZIP_PATH ]
     then
-        echo "Removing $ODL_ZIP_DIR"
-        rm -f $ODL_ZIP_DIR
+        echo "Removing $ODL_ZIP_PATH"
+        rm -f $ODL_ZIP_PATH
     fi
 
     # Install required packages
@@ -130,7 +130,7 @@ install_opendaylight()
     # Grab last successful build
     echo "Downloading last successful ODL build"
     wget -P $BASE_DIR "https://jenkins.opendaylight.org/integration/job/integration-project-centralized-integration/lastSuccessfulBuild/artifact/distributions/base/target/$ODL_ZIP"
-    unzip -d $BASE_DIR $ODL_ZIP_DIR
+    unzip -d $BASE_DIR $ODL_ZIP_PATH
 
     # Make some plugin changes that are apparently required for CBench
     echo "Downloading openflowplugin"
@@ -174,7 +174,7 @@ start_opendaylight()
         ./run.sh -start $OSGI_PORT -of13 -Xms1g -Xmx4g
     fi
     cd $old_cwd
-    # TODO: Block until ODL is actually up
+    # TODO: Smarter block until ODL is actually up
     sleep 60
     issue_odl_config
 }
@@ -187,6 +187,7 @@ issue_odl_config()
     if ! command -v telnet &>/dev/null; then
         sudo yum install -y telnet
     fi
+    echo "Issuing \`dropAllPacketsRpc on\` command via telnet to localhost:2400"
     echo "dropAllPacketsRpc on" | telnet 127.0.0.1 $OSGI_PORT
 }
 
@@ -211,9 +212,9 @@ cleanup()
         echo "Removing $ODL_DIR"
         rm -rf $ODL_DIR
     fi
-    if [ -f $ODL_ZIP_DIR ]; then
-        echo "Removing $ODL_ZIP_DIR"
-        rm -rf $ODL_ZIP_DIR
+    if [ -f $ODL_ZIP_PATH ]; then
+        echo "Removing $ODL_ZIP_PATH"
+        rm -rf $ODL_ZIP_PATH
     fi
     if [ -d $OF_DIR ]; then
         echo "Removing $OF_DIR"
