@@ -89,6 +89,7 @@ install_cbench()
     sudo make install
     cd $old_cwd
 
+    # Validate that the install worked
     if ! cbench_installed; then
         echo "Failed to install CBench" >&2
         exit $EX_ERR
@@ -185,6 +186,7 @@ install_opendaylight()
 
 odl_installed()
 {
+    # Checks if OpenDaylight is installed
     if [ ! -d $ODL_DIR ]; then
         return $EX_NOT_FOUND
     fi
@@ -192,6 +194,8 @@ odl_installed()
 
 odl_started()
 {
+    # Checks if OpenDaylight is running
+    # Assumes you've checked that ODL is installed
     cd $ODL_DIR
     if ./run.sh -status &> /dev/null; then
         return $EX_OK
@@ -233,6 +237,7 @@ issue_odl_config()
         sudo yum install -y telnet
     fi
     echo "Issuing \`dropAllPacketsRpc on\` command via telnet to localhost:$OSGI_PORT"
+    # NB: Not using sleeps results in silent failures (cmd has no effect)
     (sleep 3; echo dropAllPacketsRpc on; sleep 3) | telnet localhost $OSGI_PORT
 }
 
