@@ -13,7 +13,10 @@ NUM_MACS=100000
 TESTS_PER_SWITCH=20
 MS_PER_TEST=1000
 OSGI_PORT=2400
-ODL_STARTUP_DELAY=120
+ODL_STARTUP_DELAY=90
+COL_ZERO_NAME="run_num"
+COL_ONE_NAME="flows_per_second"
+
 
 # Paths used in this script
 BASE_DIR=$HOME
@@ -23,6 +26,7 @@ ODL_DIR=$BASE_DIR/opendaylight
 ODL_ZIP="distributions-base-0.1.2-SNAPSHOT-osgipackage.zip"
 ODL_ZIP_PATH=$BASE_DIR/$ODL_ZIP
 PLUGIN_DIR=$ODL_DIR/plugins
+RESULTS_FILE=$BASE_DIR/"results.csv"
 
 usage()
 {
@@ -94,6 +98,34 @@ install_cbench()
     fi
 }
 
+get_next_run_num()
+{
+    # Get the number of the next run, validate results file format
+    # Build results file with column headers if it doesn't exist or it's empty
+    if [ ! -s $RESULTS_FILE ]; then
+        echo "$RESULTS_FILE not found or empty, building fresh one" >&2
+        echo "$COL_ZERO_NAME,$COL_ONE_NAME" > $RESULTS_FILE
+        return 0
+    fi
+
+    # Validate result file header format
+    cat $RESULTS_FILE | head -n 1 | grep "^$COL_ZERO_NAME,$COL_ONE_NAME$" &> /dev/null
+    if [ ! $? -eq 0 ]; then
+        echo "Invalid header in $RESULTS_FILE, bailing" >&2
+        exit $EX_ERR
+    fi
+
+    # Handle special case of header-only results file
+    num_lines=`wc -l $RESULTS_FILE | awk '{print $1}'`
+    if [ $num_lines -eq 1 ]; then
+        return 0
+    fi
+
+    # Get the last run number, add one for next run number
+    next_run_num=$(expr $(cat $RESULTS_FILE | cut -d, -f1 | tail -n 1) + 1)
+    return $next_run_num
+}
+
 run_cbench()
 {
     # Runs the CBench test against the controller
@@ -107,7 +139,13 @@ run_cbench()
     avg=`cbench -c localhost -p 6633 -m $MS_PER_TEST -l $TESTS_PER_SWITCH -s $NUM_SWITCHES -M $NUM_MACS 2>&1 \
         | grep RESULT | awk '{print $8}' | awk -F'/' '{print $3}'`
     echo "Average responses/second: $avg"
-    # TODO: Store results in CVS format, integrate with Jenkins Plot Plugin
+
+    # Store results in CVS format
+    get_next_run_num
+    run_num=$?
+    echo "$run_num,$avg" >> $RESULTS_FILE
+
+    # TODO: Integrate with Jenkins Plot Plugin
 }
 
 install_opendaylight()
@@ -195,7 +233,7 @@ issue_odl_config()
         sudo yum install -y telnet
     fi
     echo "Issuing \`dropAllPacketsRpc on\` command via telnet to localhost:$OSGI_PORT"
-    (sleep 1; echo dropAllPacketsRpc on; sleep 1) | telnet localhost $OSGI_PORT
+    (sleep 3; echo dropAllPacketsRpc on; sleep 3) | telnet localhost $OSGI_PORT
 }
 
 stop_opendaylight()
