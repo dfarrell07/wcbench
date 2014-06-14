@@ -112,13 +112,15 @@ get_next_run_num()
         else
             echo $HEADER > $RESULTS_FILE
         fi
-        return 0
+        echo 0
+        return
     fi
 
     # Handle special case of header-only results file
     num_lines=`wc -l $RESULTS_FILE | awk '{print $1}'`
     if [ $num_lines -eq 1 ]; then
-        return 0
+        echo 0
+        return
     fi
 
     # Get the last run number, add one for next run number
