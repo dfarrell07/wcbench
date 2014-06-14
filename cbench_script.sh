@@ -1,5 +1,6 @@
 #!/usr/bin/env sh
 # Script for running automated CBench regression tests
+# TODO: Support latency and throughput modes
 
 # Exit codes
 EX_USAGE=64
@@ -14,9 +15,9 @@ TESTS_PER_SWITCH=20
 MS_PER_TEST=1000
 OSGI_PORT=2400
 ODL_STARTUP_DELAY=90
-COL_ZERO_NAME="run_num"
-COL_ONE_NAME="flows_per_second"
-
+HEADER="run_num,flows_per_second"
+VERBOSE=true
+VERBOSE_HEADER="$HEADER,time,num_switches,num_macs,tests_per_switch,ms_per_test,steal_time,total_RAM,used_RAM,free_RAM,CPUs,controller"
 
 # Paths used in this script
 BASE_DIR=$HOME
@@ -65,6 +66,7 @@ install_cbench()
     # This function is idempotent
     # This has been tested on fresh cloud versions of Fedora 20 and CentOS 6.5
     # Note that I'm not currently building oflops/netfpga-packet-generator-c-library (optional)
+    # TODO: Suppress output
     if cbench_installed; then
         return $EX_OK
     fi
@@ -105,15 +107,12 @@ get_next_run_num()
     # Build results file with column headers if it doesn't exist or it's empty
     if [ ! -s $RESULTS_FILE ]; then
         echo "$RESULTS_FILE not found or empty, building fresh one" >&2
-        echo "$COL_ZERO_NAME,$COL_ONE_NAME" > $RESULTS_FILE
+        if [ $VERBOSE = true ]; then
+            echo $VERBOSE_HEADER > $RESULTS_FILE
+        else
+            echo $HEADER > $RESULTS_FILE
+        fi
         return 0
-    fi
-
-    # Validate result file header format
-    cat $RESULTS_FILE | head -n 1 | grep "^$COL_ZERO_NAME,$COL_ONE_NAME$" &> /dev/null
-    if [ ! $? -eq 0 ]; then
-        echo "Invalid header in $RESULTS_FILE, bailing" >&2
-        exit $EX_ERR
     fi
 
     # Handle special case of header-only results file
@@ -123,14 +122,33 @@ get_next_run_num()
     fi
 
     # Get the last run number, add one for next run number
+    # FIXME: Bash is rolling num over at 255, use echo and $() vs return
     next_run_num=$(expr $(cat $RESULTS_FILE | cut -d, -f1 | tail -n 1) + 1)
     return $next_run_num
+}
+
+get_verbose_stats()
+{
+    # Collect stats that provide system and CBench run details
+    # time,num_switches,num_macs,tests_per_switch,ms_per_test,steal_time,total_RAM,used_RAM,free_RAM,CPUs,controller"
+    run_time=`date`
+    # Note that RAM info is in MB
+    total_ram=$(free -m | awk '/^Mem:/{print $2}')
+    used_ram=$(free -m | awk '/^Mem:/{print $3}')
+    free_ram=$(free -m | awk '/^Mem:/{print $4}')
+    cpus=`nproc`
+    steal_time=`cat /proc/stat | awk 'NR==1 {print $9}'`
+    # Hard-coded for now, will updated once this script supports other controllers
+    controller="OpenDaylight"
+    verbose_stats="$run_time,$NUM_SWITCHES,$NUM_MACS,$TESTS_PER_SWITCH,$MS_PER_TEST,$steal_time,$total_ram,$used_ram,$free_ram,$cpus,$controller"
+    echo $verbose_stats
 }
 
 run_cbench()
 {
     # Runs the CBench test against the controller
     # Ignore the first run, as it always seems to be very non-representative
+    # TODO: Check if discarding first run actually gives better results
     echo "First CBench run will be discarded, as it's non-representative."
     echo "Initial CBench run..."
     cbench -c localhost -p 6633 -m $MS_PER_TEST -l $TESTS_PER_SWITCH -s $NUM_SWITCHES -M $NUM_MACS &> /dev/null
@@ -144,7 +162,12 @@ run_cbench()
     # Store results in CVS format
     get_next_run_num
     run_num=$?
-    echo "$run_num,$avg" >> $RESULTS_FILE
+    if [ $VERBOSE = true ]; then
+        verbose_stats=$(get_verbose_stats)
+        echo "$run_num,$avg,$verbose_stats" >> $RESULTS_FILE
+    else
+        echo "$run_num,$avg" >> $RESULTS_FILE
+    fi
 
     # TODO: Integrate with Jenkins Plot Plugin
 }
