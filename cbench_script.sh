@@ -122,9 +122,8 @@ get_next_run_num()
     fi
 
     # Get the last run number, add one for next run number
-    # FIXME: Bash is rolling num over at 255, use echo and $() vs return
     next_run_num=$(expr $(cat $RESULTS_FILE | cut -d, -f1 | tail -n 1) + 1)
-    return $next_run_num
+    echo $next_run_num
 }
 
 get_verbose_stats()
@@ -160,8 +159,7 @@ run_cbench()
     echo "Average responses/second: $avg"
 
     # Store results in CVS format
-    get_next_run_num
-    run_num=$?
+    run_num=$(get_next_run_num)
     if [ $VERBOSE = true ]; then
         verbose_stats=$(get_verbose_stats)
         echo "$run_num,$avg,$verbose_stats" >> $RESULTS_FILE
