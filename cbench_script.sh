@@ -146,14 +146,8 @@ get_verbose_stats()
 run_cbench()
 {
     # Runs the CBench test against the controller
-    # Ignore the first run, as it always seems to be very non-representative
-    # TODO: Check if discarding first run actually gives better results
-    echo "First CBench run will be discarded, as it's non-representative."
-    echo "Initial CBench run..."
-    cbench -c localhost -p 6633 -m $MS_PER_TEST -l $TESTS_PER_SWITCH -s $NUM_SWITCHES -M $NUM_MACS &> /dev/null
-
+    echo "Running CBench..."
     # Parse out average responses/second
-    echo "Primary CBench run..."
     avg=`cbench -c localhost -p 6633 -m $MS_PER_TEST -l $TESTS_PER_SWITCH -s $NUM_SWITCHES -M $NUM_MACS 2>&1 \
         | grep RESULT | awk '{print $8}' | awk -F'/' '{print $3}'`
     echo "Average responses/second: $avg"
