@@ -14,10 +14,10 @@ NUM_MACS=100000
 TESTS_PER_SWITCH=20
 MS_PER_TEST=1000
 OSGI_PORT=2400
-ODL_STARTUP_DELAY=90
-HEADER="run_num,flows_per_second"
+ODL_STARTUP_DELAY=120
+HEADER="run_num,flows_per_second,start_time,end_time"
 VERBOSE=true
-VERBOSE_HEADER="$HEADER,time,num_switches,num_macs,tests_per_switch,ms_per_test,steal_time,total_RAM,used_RAM,free_RAM,CPUs,controller"
+VERBOSE_HEADER="$HEADER,human_time,num_switches,num_macs,tests_per_switch,ms_per_test,steal_time,total_RAM,used_RAM,free_RAM,CPUs,controller"
 
 # Paths used in this script
 BASE_DIR=$HOME
@@ -131,8 +131,8 @@ get_next_run_num()
 get_verbose_stats()
 {
     # Collect stats that provide system and CBench run details
-    # time,num_switches,num_macs,tests_per_switch,ms_per_test,steal_time,total_RAM,used_RAM,free_RAM,CPUs,controller"
-    run_time=`date`
+    # human_time,num_switches,num_macs,tests_per_switch,ms_per_test,steal_time,total_RAM,used_RAM,free_RAM,CPUs,controller"
+    human_time=`date`
     # Note that RAM info is in MB
     total_ram=$(free -m | awk '/^Mem:/{print $2}')
     used_ram=$(free -m | awk '/^Mem:/{print $3}')
@@ -141,7 +141,7 @@ get_verbose_stats()
     steal_time=`cat /proc/stat | awk 'NR==1 {print $9}'`
     # Hard-coded for now, will updated once this script supports other controllers
     controller="OpenDaylight"
-    verbose_stats="$run_time,$NUM_SWITCHES,$NUM_MACS,$TESTS_PER_SWITCH,$MS_PER_TEST,$steal_time,$total_ram,$used_ram,$free_ram,$cpus,$controller"
+    verbose_stats="$human_time,$NUM_SWITCHES,$NUM_MACS,$TESTS_PER_SWITCH,$MS_PER_TEST,$steal_time,$total_ram,$used_ram,$free_ram,$cpus,$controller"
     echo $verbose_stats
 }
 
@@ -150,17 +150,19 @@ run_cbench()
     # Runs the CBench test against the controller
     echo "Running CBench..."
     # Parse out average responses/second
+    start_time=`date +%s`
     avg=`cbench -c localhost -p 6633 -m $MS_PER_TEST -l $TESTS_PER_SWITCH -s $NUM_SWITCHES -M $NUM_MACS 2>&1 \
         | grep RESULT | awk '{print $8}' | awk -F'/' '{print $3}'`
+    end_time=`date +%s`
     echo "Average responses/second: $avg"
 
     # Store results in CVS format
     run_num=$(get_next_run_num)
     if [ $VERBOSE = true ]; then
         verbose_stats=$(get_verbose_stats)
-        echo "$run_num,$avg,$verbose_stats" >> $RESULTS_FILE
+        echo "$run_num,$avg,$start_time,$end_time,$verbose_stats" >> $RESULTS_FILE
     else
-        echo "$run_num,$avg" >> $RESULTS_FILE
+        echo "$run_num,$avg,$start_time,$end_time" >> $RESULTS_FILE
     fi
 
     # TODO: Integrate with Jenkins Plot Plugin
@@ -186,7 +188,7 @@ install_opendaylight()
 
     # Grab last successful build
     echo "Downloading last successful ODL build"
-    wget -P $BASE_DIR "https://jenkins.opendaylight.org/integration/job/integration-project-centralized-integration/lastSuccessfulBuild/artifact/distributions/base/target/$ODL_ZIP" &> /dev/null
+    wget -P $BASE_DIR "https://jenkins.opendaylight.org/integration/job/integration-master-project-centralized-integration/lastSuccessfulBuild/artifact/distributions/base/target/$ODL_ZIP" &> /dev/null
     echo "Unzipping last successful ODL build"
     unzip -d $BASE_DIR $ODL_ZIP_PATH &> /dev/null
 
