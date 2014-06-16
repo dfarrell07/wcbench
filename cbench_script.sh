@@ -17,7 +17,10 @@ OSGI_PORT=2400
 ODL_STARTUP_DELAY=120
 HEADER="run_num,flows_per_second,start_time,end_time"
 VERBOSE=true
-VERBOSE_HEADER="$HEADER,human_time,num_switches,num_macs,tests_per_switch,ms_per_test,steal_time,total_RAM,used_RAM,free_RAM,CPUs,controller"
+VERBOSE_HEADER="$HEADER,human_time,num_switches,num_macs,tests_per_switch,ms_per_test,steal_time,total_RAM,used_RAM,free_RAM,CPUs,1_min_load,5_min_load,15_min_load,odl_statuscontroller"
+ODL_RUNNING_STATUS=0
+ODL_STOPPED_STATUS=255
+ODL_BROKEN_STATUS=1
 
 # Paths used in this script
 BASE_DIR=$HOME
@@ -131,17 +134,22 @@ get_next_run_num()
 get_verbose_stats()
 {
     # Collect stats that provide system and CBench run details
-    # human_time,num_switches,num_macs,tests_per_switch,ms_per_test,steal_time,total_RAM,used_RAM,free_RAM,CPUs,controller"
+    # human_time,num_switches,num_macs,tests_per_switch,ms_per_test,steal_time,total_RAM,used_RAM,free_RAM,CPUs,1_min_load,5_min_load,15_min_load,odl_status,controller"
     human_time=`date`
     # Note that RAM info is in MB
     total_ram=$(free -m | awk '/^Mem:/{print $2}')
     used_ram=$(free -m | awk '/^Mem:/{print $3}')
     free_ram=$(free -m | awk '/^Mem:/{print $4}')
     cpus=`nproc`
+    one_min_load=`uptime | awk -F'[a-z]:' '{print $2}' | awk -F "," '{print $1}' | tr -d " "`
+    five_min_load=`uptime | awk -F'[a-z]:' '{print $2}' | awk -F "," '{print $2}' | tr -d " "`
+    fifteen_min_load=`uptime | awk -F'[a-z]:' '{print $2}' | awk -F "," '{print $3}' | tr -d " "`
     steal_time=`cat /proc/stat | awk 'NR==1 {print $9}'`
+    odl_status
+    odl_status=$?
     # Hard-coded for now, will updated once this script supports other controllers
     controller="OpenDaylight"
-    verbose_stats="$human_time,$NUM_SWITCHES,$NUM_MACS,$TESTS_PER_SWITCH,$MS_PER_TEST,$steal_time,$total_ram,$used_ram,$free_ram,$cpus,$controller"
+    verbose_stats="$human_time,$NUM_SWITCHES,$NUM_MACS,$TESTS_PER_SWITCH,$MS_PER_TEST,$steal_time,$total_ram,$used_ram,$free_ram,$cpus,$one_min_load,$five_min_load,$fifteen_min_load,$odl_status,$controller"
     echo $verbose_stats
 }
 
@@ -211,12 +219,25 @@ odl_installed()
     fi
 }
 
+odl_status()
+{
+    # Checks if OpenDaylight is running
+    # Assumes you've checked that ODL is installed
+    old_cwd=$PWD
+    cd $ODL_DIR
+    ./run.sh -status &> /dev/null
+    odl_status=$?
+    cd $old_cwd
+    return $odl_status
+}
+
 odl_started()
 {
     # Checks if OpenDaylight is running
     # Assumes you've checked that ODL is installed
+    old_cwd=$PWD
     cd $ODL_DIR
-    if ./run.sh -status &> /dev/null; then
+    if odl_status; then
         return $EX_OK
     else
         return $EX_NOT_FOUND
