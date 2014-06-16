@@ -6,24 +6,32 @@ import numpy
 import pprint
 
 results_file = "results.csv"
+flow_index = 1
+start_time_index = 2
+end_time_index = 3
+used_ram_index = 11
 
 flows_col = []
 runtime_col = []
 used_ram_col = []
+null_flow_results = 0
 with open(results_file, "rb") as f:
     reader = csv.reader(f)
     for row in reader:
+        # cbench_script.sh is currently giving null for some CBench results, skip them
         try:
-            flows_col.append(float(row[1]))
-            # Subtract end_time from start_time to get CBench runtime
-            runtime_col.append(float(row[3]) - float(row[2]))
-            used_ram_col.append(float(row[11]))
+            flows_col.append(float(row[flow_index]))
         except ValueError:
-            # Skips header
+            if row[flow_index] == "":
+                null_flow_results += 1
             continue
+        # Subtract end_time from start_time to get CBench runtime
+        runtime_col.append(float(row[end_time_index]) - float(row[start_time_index]))
+        used_ram_col.append(float(row[used_ram_index]))
 
 results = {}
 results["sample_size"] = len(flows_col)
+results["null_flow_results"] = null_flow_results
 
 # Calculate CBench flows/second stats
 results["cbench_min"] = int(round(numpy.amin(flows_col)))
