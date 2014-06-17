@@ -11,10 +11,11 @@ EX_ERR=1
 # Params for CBench test and ODL config
 NUM_SWITCHES=16
 NUM_MACS=100000
-TESTS_PER_SWITCH=20
+#TESTS_PER_SWITCH=20
+TESTS_PER_SWITCH=2
 MS_PER_TEST=1000
 OSGI_PORT=2400
-ODL_STARTUP_DELAY=120
+ODL_STARTUP_DELAY=90
 HEADER="run_num,flows_per_second,start_time,end_time"
 VERBOSE=true
 VERBOSE_HEADER="$HEADER,human_time,num_switches,num_macs,tests_per_switch,ms_per_test,steal_time,total_RAM,used_RAM,free_RAM,CPUs,1_min_load,5_min_load,15_min_load,odl_statuscontroller"
@@ -31,6 +32,9 @@ ODL_ZIP="distributions-base-0.1.2-SNAPSHOT-osgipackage.zip"
 ODL_ZIP_PATH=$BASE_DIR/$ODL_ZIP
 PLUGIN_DIR=$ODL_DIR/plugins
 RESULTS_FILE=$BASE_DIR/"results.csv"
+CBENCH_LOG=$BASE_DIR/"cbench.log"
+#CONTROLLER_IP="localhost"
+CONTROLLER_IP="172.18.14.26"
 
 usage()
 {
@@ -110,7 +114,7 @@ get_next_run_num()
     # Build results file with column headers if it doesn't exist or it's empty
     if [ ! -s $RESULTS_FILE ]; then
         echo "$RESULTS_FILE not found or empty, building fresh one" >&2
-        if [ $VERBOSE = true ]; then
+        if [ $VERBOSE = true -a $CONTROLLER_IP = "localhost" ]; then
             echo $VERBOSE_HEADER > $RESULTS_FILE
         else
             echo $HEADER > $RESULTS_FILE
@@ -134,6 +138,7 @@ get_next_run_num()
 get_verbose_stats()
 {
     # Collect stats that provide system and CBench run details
+    # TODO: Refactor this to be more-or-less "remote stats", only call when running locally
     # human_time,num_switches,num_macs,tests_per_switch,ms_per_test,steal_time,total_RAM,used_RAM,free_RAM,CPUs,1_min_load,5_min_load,15_min_load,odl_status,controller"
     human_time=`date`
     # Note that RAM info is in MB
@@ -159,18 +164,24 @@ run_cbench()
     echo "Running CBench..."
     # Parse out average responses/second
     start_time=`date +%s`
-    avg=`cbench -c localhost -p 6633 -m $MS_PER_TEST -l $TESTS_PER_SWITCH -s $NUM_SWITCHES -M $NUM_MACS 2>&1 \
-        | grep RESULT | awk '{print $8}' | awk -F'/' '{print $3}'`
+    cbench_output=`cbench -c $CONTROLLER_IP -p 6633 -m $MS_PER_TEST -l $TESTS_PER_SWITCH -s $NUM_SWITCHES -M $NUM_MACS 2>&1`
     end_time=`date +%s`
+    avg=`echo "$cbench_output" | grep RESULT | awk '{print $8}' | awk -F'/' '{print $3}'`
     echo "Average responses/second: $avg"
 
     # Store results in CVS format
     run_num=$(get_next_run_num)
-    if [ $VERBOSE = true ]; then
+    if [ $VERBOSE = true -a $CONTROLLER_IP = "localhost" ]; then
         verbose_stats=$(get_verbose_stats)
         echo "$run_num,$avg,$start_time,$end_time,$verbose_stats" >> $RESULTS_FILE
     else
         echo "$run_num,$avg,$start_time,$end_time" >> $RESULTS_FILE
+    fi
+
+    # Log details of CBench output when no avg was found
+    if [ "$avg" = "" ]; then
+        echo "Run $run_num failed to record a CBench average. CBench details:" >> $CBENCH_LOG
+        echo "$cbench_output" >> $CBENCH_LOG
     fi
 
     # TODO: Integrate with Jenkins Plot Plugin
@@ -338,13 +349,18 @@ while getopts ":hrciokd" opt; do
             ;;
         r)
             # Run CBench against OpenDaylight
-            if ! odl_installed; then
-                echo "OpenDaylight isn't installed, can't run test"
-                exit $EX_ERR
-            fi
-            if ! odl_started; then
-                echo "OpenDaylight isn't started, can't run test"
-                exit $EX_ERR
+            if [ $CONTROLLER_IP = "localhost" ]; then
+                if ! odl_installed; then
+                    echo "OpenDaylight isn't installed, can't run test"
+                    exit $EX_ERR
+                fi
+                if ! odl_started; then
+                    echo "OpenDaylight isn't started, can't run test"
+                    exit $EX_ERR
+                fi
+                echo "Running CBench against ODL on localhost"
+            else
+                echo "Running CBench against ODL on $CONTROLLER_IP"
             fi
             run_cbench
             ;;
