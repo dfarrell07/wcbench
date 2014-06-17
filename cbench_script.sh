@@ -16,7 +16,7 @@ TESTS_PER_SWITCH=2
 MS_PER_TEST=1000
 OSGI_PORT=2400
 ODL_STARTUP_DELAY=90
-HEADER="run_num,flows_per_second,start_time,end_time"
+HEADER="run_num,flows_per_second,start_time,end_time,controller_ip"
 VERBOSE=true
 VERBOSE_HEADER="$HEADER,human_time,num_switches,num_macs,tests_per_switch,ms_per_test,steal_time,total_RAM,used_RAM,free_RAM,CPUs,1_min_load,5_min_load,15_min_load,odl_statuscontroller"
 ODL_RUNNING_STATUS=0
@@ -177,9 +177,9 @@ run_cbench()
     run_num=$(get_next_run_num)
     if [ $VERBOSE = true -a $CONTROLLER_IP = "localhost" ]; then
         verbose_stats=$(get_verbose_stats)
-        echo "$run_num,$avg,$start_time,$end_time,$verbose_stats" >> $RESULTS_FILE
+        echo "$run_num,$avg,$start_time,$end_time,$CONTROLLER_IP,$verbose_stats" >> $RESULTS_FILE
     else
-        echo "$run_num,$avg,$start_time,$end_time" >> $RESULTS_FILE
+        echo "$run_num,$avg,$start_time,$end_time,$CONTROLLER_IP" >> $RESULTS_FILE
     fi
 
     # Log details of CBench output when no avg was found
