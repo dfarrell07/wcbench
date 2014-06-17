@@ -73,29 +73,33 @@ install_cbench()
     # This function is idempotent
     # This has been tested on fresh cloud versions of Fedora 20 and CentOS 6.5
     # Note that I'm not currently building oflops/netfpga-packet-generator-c-library (optional)
-    # TODO: Suppress output
     if cbench_installed; then
         return $EX_OK
     fi
 
     # Install required packages
-    sudo yum install -y net-snmp-devel libpcap-devel autoconf make automake libtool libconfig-devel git
+    echo "Installing CBench dependences"
+    sudo yum install -y net-snmp-devel libpcap-devel autoconf make automake libtool libconfig-devel git &> /dev/null
 
     # Clone repo that contains CBench
-    git clone https://github.com/andi-bigswitch/oflops.git $OFLOPS_DIR
+    echo "Cloning CBench repo"
+    git clone https://github.com/andi-bigswitch/oflops.git $OFLOPS_DIR &> /dev/null
 
     # CBench requires the OpenFlow source code, clone it
-    git clone git://gitosis.stanford.edu/openflow.git $OF_DIR
+    echo "Cloning openflow source code"
+    git clone git://gitosis.stanford.edu/openflow.git $OF_DIR &> /dev/null
 
     # Build the oflops/configure file
     old_cwd=$PWD
     cd $OFLOPS_DIR
-    ./boot.sh
+    echo "Building oflops/configure file"
+    ./boot.sh &> /dev/null
 
     # Build oflops
-    ./configure --with-openflow-src-dir=$OF_DIR
-    make
-    sudo make install
+    echo "Building CBench"
+    ./configure --with-openflow-src-dir=$OF_DIR &> /dev/null
+    make &> /dev/null
+    sudo make install &> /dev/null
     cd $old_cwd
 
     # Validate that the install worked
