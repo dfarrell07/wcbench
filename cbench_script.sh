@@ -20,10 +20,14 @@ ODL_STARTUP_DELAY=90
 HEADER="run_num,flows_per_second,start_time,end_time,controller_ip"
 # TODO: Remove verbose concept
 VERBOSE=true
-VERBOSE_HEADER="$HEADER,human_time,num_switches,num_macs,tests_per_switch,ms_per_test,steal_time,total_RAM,used_RAM,free_RAM,CPUs,1_min_load,5_min_load,15_min_load,odl_statuscontroller"
+VERBOSE_HEADER="$HEADER,human_time,num_switches,num_macs,tests_per_switch,ms_per_test,steal_time,total_RAM,used_RAM,free_RAM,CPUs,1_min_load,5_min_load,15_min_load,odl_status,controller"
 ODL_RUNNING_STATUS=0
 ODL_STOPPED_STATUS=255
 ODL_BROKEN_STATUS=1
+CONTROLLER="OpenDaylight"
+
+# Associative array that will store CBench result key:value pairs
+declare -A results
 
 # Paths used in this script
 BASE_DIR=$HOME
@@ -35,8 +39,8 @@ ODL_ZIP_PATH=$BASE_DIR/$ODL_ZIP
 PLUGIN_DIR=$ODL_DIR/plugins
 RESULTS_FILE=$BASE_DIR/"results.csv"
 CBENCH_LOG=$BASE_DIR/"cbench.log"
-#CONTROLLER_IP="localhost"
-CONTROLLER_IP="172.18.14.26"
+CONTROLLER_IP="localhost"
+#CONTROLLER_IP="172.18.14.26"
 
 usage()
 {
@@ -145,24 +149,17 @@ get_next_run_num()
 get_local_system_stats()
 {
     # Collect stats that provide system and CBench run details
-    # human_time,num_switches,num_macs,tests_per_switch,ms_per_test,steal_time,total_RAM,used_RAM,free_RAM,CPUs,1_min_load,5_min_load,15_min_load,odl_status,controller"
-    # TODO: Convert to use key:value pairs
-    human_time=`date`
-    # Note that RAM info is in MB
-    total_ram=$(free -m | awk '/^Mem:/{print $2}')
-    used_ram=$(free -m | awk '/^Mem:/{print $3}')
-    free_ram=$(free -m | awk '/^Mem:/{print $4}')
-    cpus=`nproc`
-    one_min_load=`uptime | awk -F'[a-z]:' '{print $2}' | awk -F "," '{print $1}' | tr -d " "`
-    five_min_load=`uptime | awk -F'[a-z]:' '{print $2}' | awk -F "," '{print $2}' | tr -d " "`
-    fifteen_min_load=`uptime | awk -F'[a-z]:' '{print $2}' | awk -F "," '{print $3}' | tr -d " "`
-    steal_time=`cat /proc/stat | awk 'NR==1 {print $9}'`
+    results[human_time]=`date`
+    results[total_ram]=$(free -m | awk '/^Mem:/{print $2}')
+    results[used_ram]=$(free -m | awk '/^Mem:/{print $3}')
+    results[free_ram]=$(free -m | awk '/^Mem:/{print $4}')
+    results[cpus]=`nproc`
+    results[one_min_load]=`uptime | awk -F'[a-z]:' '{print $2}' | awk -F "," '{print $1}' | tr -d " "`
+    results[five_min_load]=`uptime | awk -F'[a-z]:' '{print $2}' | awk -F "," '{print $2}' | tr -d " "`
+    results[fifteen_min_load]=`uptime | awk -F'[a-z]:' '{print $2}' | awk -F "," '{print $3}' | tr -d " "`
+    results[steal_time]=`cat /proc/stat | awk 'NR==1 {print $9}'`
     odl_status
-    odl_status=$?
-    # Hard-coded for now, will updated once this script supports other controllers
-    controller="OpenDaylight"
-    system_stats="$human_time,$NUM_SWITCHES,$NUM_MACS,$TESTS_PER_SWITCH,$MS_PER_TEST,$steal_time,$total_ram,$used_ram,$free_ram,$cpus,$one_min_load,$five_min_load,$fifteen_min_load,$odl_status,$controller"
-    echo $system_stats
+    results[odl_status]=$?
 }
 
 get_remote_system_stats()
@@ -171,26 +168,54 @@ get_remote_system_stats()
     echo "WARNING: Not implemented"
 }
 
-log_results()
+collect_results()
 {
     # Collect results of CBench run and write them to a file
-    # Store passed params
-    cbench_avg=$1
-    start_time=$2
-    end_time=$3
+    # Store stats that are not dependent on local vs remote execution
+    results[cbench_avg]=$1
+    results[start_time]=$2
+    results[end_time]=$3
+    results[run_num]=$(get_next_run_num)
+    results[controller_ip]=$CONTROLLER_IP
+    results[num_switches]=$NUM_SWITCHES
+    results[num_macs]=$NUM_MACS
+    results[tests_per_switch]=$TESTS_PER_SWITCH
+    results[ms_per_test]=$MS_PER_TEST
+    results[controller]=$CONTROLLER
 
-    # Store results in CVS format
-    run_num=$(get_next_run_num)
+    # Store local or remote stats
     if [ $CONTROLLER_IP = "localhost" ]; then
-        system_stats=$(get_local_system_stats)
-        echo "$run_num,$cbench_avg,$start_time,$end_time,$CONTROLLER_IP,$system_stats" >> $RESULTS_FILE
+        get_local_system_stats
     else
-        # TODO: Uncomment once implemented
-        #system_stats=$(get_remote_system_stats)
-        echo "$run_num,$cbench_avg,$start_time,$end_time,$CONTROLLER_IP" >> $RESULTS_FILE
+        get_remote_system_stats
     fi
+}
 
-    # TODO: Convert long echos into loop over key:value pairs
+write_results()
+{
+    # Write collected results to the results file
+    # Bash associative arrays are unordered
+    # We need to guarantee CSV file order, so we can't loop to print :(
+    echo -n "${results[run_num]}," >> $RESULTS_FILE
+    echo -n "${results[cbench_avg]}," >> $RESULTS_FILE
+    echo -n "${results[start_time]}," >> $RESULTS_FILE
+    echo -n "${results[end_time]}," >> $RESULTS_FILE
+    echo -n "${results[controller_ip]}," >> $RESULTS_FILE
+    echo -n "${results[human_time]}," >> $RESULTS_FILE
+    echo -n "${results[num_switches]}," >> $RESULTS_FILE
+    echo -n "${results[num_macs]}," >> $RESULTS_FILE
+    echo -n "${results[tests_per_switch]}," >> $RESULTS_FILE
+    echo -n "${results[ms_per_test]}," >> $RESULTS_FILE
+    echo -n "${results[steal_time]}," >> $RESULTS_FILE
+    echo -n "${results[total_ram]}," >> $RESULTS_FILE
+    echo -n "${results[used_ram]}," >> $RESULTS_FILE
+    echo -n "${results[free_ram]}," >> $RESULTS_FILE
+    echo -n "${results[cpus]}," >> $RESULTS_FILE
+    echo -n "${results[one_min_load]}," >> $RESULTS_FILE
+    echo -n "${results[five_min_load]}," >> $RESULTS_FILE
+    echo -n "${results[fifteen_min_load]}," >> $RESULTS_FILE
+    echo -n "${results[odl_status]}," >> $RESULTS_FILE
+    echo "${results[controller]}" >> $RESULTS_FILE
 }
 
 run_cbench()
@@ -204,7 +229,7 @@ run_cbench()
     # Parse out average responses/sec, log/handle very rare unexplained errors
     # This logic can be removed if/when the root cause of this error is discovered and fixed
     cbench_avg=`echo "$cbench_output" | grep RESULT | awk '{print $8}' | awk -F'/' '{print $3}'`
-    if [ "$cbench_avg" = "" ]; then
+    if [ $cbench_avg = "" ]; then
         echo "WARNING: Rare error occurred: failed to parse avg. See $CBENCH_LOG." >&2
         echo "Run TODO_run_num failed to record a CBench average. CBench details:" >> $CBENCH_LOG
         echo "$cbench_output" >> $CBENCH_LOG
@@ -212,7 +237,8 @@ run_cbench()
         echo "Average responses/second: $cbench_avg"
     fi
 
-    log_results $cbench_avg $start_time $end_time
+    collect_results $cbench_avg $start_time $end_time
+    write_results
 
     # TODO: Integrate with Jenkins Plot Plugin
 }
@@ -269,6 +295,7 @@ odl_status()
     ./run.sh -status &> /dev/null
     odl_status=$?
     cd $old_cwd
+    # TODO: Convert to use echo, not return
     return $odl_status
 }
 
