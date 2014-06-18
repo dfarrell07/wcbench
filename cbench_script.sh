@@ -1,6 +1,7 @@
 #!/usr/bin/env sh
 # Script for running automated CBench regression tests
 # TODO: Support latency and throughput modes
+# TODO: Support for running against other controllers
 
 # Exit codes
 EX_USAGE=64
@@ -17,6 +18,7 @@ MS_PER_TEST=1000
 OSGI_PORT=2400
 ODL_STARTUP_DELAY=90
 HEADER="run_num,flows_per_second,start_time,end_time,controller_ip"
+# TODO: Remove verbose concept
 VERBOSE=true
 VERBOSE_HEADER="$HEADER,human_time,num_switches,num_macs,tests_per_switch,ms_per_test,steal_time,total_RAM,used_RAM,free_RAM,CPUs,1_min_load,5_min_load,15_min_load,odl_statuscontroller"
 ODL_RUNNING_STATUS=0
@@ -116,6 +118,7 @@ get_next_run_num()
 {
     # Get the number of the next run, validate results file format
     # Build results file with column headers if it doesn't exist or it's empty
+    # TODO: Break out header-related functionally
     if [ ! -s $RESULTS_FILE ]; then
         echo "$RESULTS_FILE not found or empty, building fresh one" >&2
         if [ $VERBOSE = true -a $CONTROLLER_IP = "localhost" ]; then
@@ -139,11 +142,11 @@ get_next_run_num()
     echo $next_run_num
 }
 
-get_verbose_stats()
+get_local_system_stats()
 {
     # Collect stats that provide system and CBench run details
-    # TODO: Refactor this to be more-or-less "remote stats", only call when running locally
     # human_time,num_switches,num_macs,tests_per_switch,ms_per_test,steal_time,total_RAM,used_RAM,free_RAM,CPUs,1_min_load,5_min_load,15_min_load,odl_status,controller"
+    # TODO: Convert to use key:value pairs
     human_time=`date`
     # Note that RAM info is in MB
     total_ram=$(free -m | awk '/^Mem:/{print $2}')
@@ -158,35 +161,58 @@ get_verbose_stats()
     odl_status=$?
     # Hard-coded for now, will updated once this script supports other controllers
     controller="OpenDaylight"
-    verbose_stats="$human_time,$NUM_SWITCHES,$NUM_MACS,$TESTS_PER_SWITCH,$MS_PER_TEST,$steal_time,$total_ram,$used_ram,$free_ram,$cpus,$one_min_load,$five_min_load,$fifteen_min_load,$odl_status,$controller"
-    echo $verbose_stats
+    system_stats="$human_time,$NUM_SWITCHES,$NUM_MACS,$TESTS_PER_SWITCH,$MS_PER_TEST,$steal_time,$total_ram,$used_ram,$free_ram,$cpus,$one_min_load,$five_min_load,$fifteen_min_load,$odl_status,$controller"
+    echo $system_stats
+}
+
+get_remote_system_stats()
+{
+    # TODO: Build 
+    echo "WARNING: Not implemented"
+}
+
+log_results()
+{
+    # Collect results of CBench run and write them to a file
+    # Store passed params
+    cbench_avg=$1
+    start_time=$2
+    end_time=$3
+
+    # Store results in CVS format
+    run_num=$(get_next_run_num)
+    if [ $CONTROLLER_IP = "localhost" ]; then
+        system_stats=$(get_local_system_stats)
+        echo "$run_num,$cbench_avg,$start_time,$end_time,$CONTROLLER_IP,$system_stats" >> $RESULTS_FILE
+    else
+        # TODO: Uncomment once implemented
+        #system_stats=$(get_remote_system_stats)
+        echo "$run_num,$cbench_avg,$start_time,$end_time,$CONTROLLER_IP" >> $RESULTS_FILE
+    fi
+
+    # TODO: Convert long echos into loop over key:value pairs
 }
 
 run_cbench()
 {
     # Runs the CBench test against the controller
     echo "Running CBench..."
-    # Parse out average responses/second
     start_time=`date +%s`
     cbench_output=`cbench -c $CONTROLLER_IP -p 6633 -m $MS_PER_TEST -l $TESTS_PER_SWITCH -s $NUM_SWITCHES -M $NUM_MACS 2>&1`
     end_time=`date +%s`
-    avg=`echo "$cbench_output" | grep RESULT | awk '{print $8}' | awk -F'/' '{print $3}'`
-    echo "Average responses/second: $avg"
 
-    # Store results in CVS format
-    run_num=$(get_next_run_num)
-    if [ $VERBOSE = true -a $CONTROLLER_IP = "localhost" ]; then
-        verbose_stats=$(get_verbose_stats)
-        echo "$run_num,$avg,$start_time,$end_time,$CONTROLLER_IP,$verbose_stats" >> $RESULTS_FILE
-    else
-        echo "$run_num,$avg,$start_time,$end_time,$CONTROLLER_IP" >> $RESULTS_FILE
-    fi
-
-    # Log details of CBench output when no avg was found
-    if [ "$avg" = "" ]; then
-        echo "Run $run_num failed to record a CBench average. CBench details:" >> $CBENCH_LOG
+    # Parse out average responses/sec, log/handle very rare unexplained errors
+    # This logic can be removed if/when the root cause of this error is discovered and fixed
+    cbench_avg=`echo "$cbench_output" | grep RESULT | awk '{print $8}' | awk -F'/' '{print $3}'`
+    if [ "$cbench_avg" = "" ]; then
+        echo "WARNING: Rare error occurred: failed to parse avg. See $CBENCH_LOG." >&2
+        echo "Run TODO_run_num failed to record a CBench average. CBench details:" >> $CBENCH_LOG
         echo "$cbench_output" >> $CBENCH_LOG
+    else
+        echo "Average responses/second: $cbench_avg"
     fi
+
+    log_results $cbench_avg $start_time $end_time
 
     # TODO: Integrate with Jenkins Plot Plugin
 }
