@@ -158,8 +158,7 @@ get_local_system_stats()
     results[five_min_load]=`uptime | awk -F'[a-z]:' '{print $2}' | awk -F "," '{print $2}' | tr -d " "`
     results[fifteen_min_load]=`uptime | awk -F'[a-z]:' '{print $2}' | awk -F "," '{print $3}' | tr -d " "`
     results[steal_time]=`cat /proc/stat | awk 'NR==1 {print $9}'`
-    odl_status
-    results[odl_status]=$?
+    results[odl_status]=$(odl_status)
 }
 
 get_remote_system_stats()
@@ -295,8 +294,7 @@ odl_status()
     ./run.sh -status &> /dev/null
     odl_status=$?
     cd $old_cwd
-    # TODO: Convert to use echo, not return
-    return $odl_status
+    echo $odl_status
 }
 
 odl_started()
@@ -305,7 +303,7 @@ odl_started()
     # Assumes you've checked that ODL is installed
     old_cwd=$PWD
     cd $ODL_DIR
-    if odl_status; then
+    if [ $(odl_status) = 0 ]; then
         return $EX_OK
     else
         return $EX_NOT_FOUND
