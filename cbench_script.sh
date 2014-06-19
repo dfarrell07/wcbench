@@ -24,16 +24,13 @@ CONTROLLER="OpenDaylight"
 CONTROLLER_IP="localhost"
 #CONTROLLER_IP="172.18.14.26"
 
-# Associative array that will store CBench result key:value pairs
+# Array that stores results in indexes defined by results_cols
 declare -a results
-declare -A results_cols
-results_cols=([run_num]=0 [cbench_avg]=1 [start_time]=2 [end_time]=3
-              [controller_ip]=4 [human_time]=5 [num_switches]=6
-              [num_macs]=7 [tests_per_switch]=8 [ms_per_test]=9
-              [steal_time]=10 [total_ram]=11 [used_ram]=12
-              [free_ram]=13 [cpus]=14 [one_min_load]=15
-              [five_min_load]=16 [fifteen_min_load]=17 [odl_status]=18
-              [controller]=19)
+declare -a cols
+cols=(run_num cbench_avg start_time end_time controller_ip human_time
+      num_switches num_macs tests_per_switch ms_per_test steal_time
+      total_ram used_ram free_ram cpus one_min_load five_min_load
+      fifteen_min_load odl_status controller)
 
 # Paths used in this script
 BASE_DIR=$HOME
@@ -138,18 +135,30 @@ get_next_run_num()
     echo $next_run_num
 }
 
+name_to_index()
+{
+    # Convert results column name to column index
+    name=$1
+    for (( i = 0; i < ${#cols[@]}; i++ )); do
+        if [ "${cols[$i]}" = $name ]; then
+            echo $i
+            return
+        fi
+    done
+}
+
 get_local_system_stats()
 {
     # Collect stats about local system
-    results[${results_cols[total_ram]}]=$(free -m | awk '/^Mem:/{print $2}')
-    results[${results_cols[used_ram]}]=$(free -m | awk '/^Mem:/{print $3}')
-    results[${results_cols[free_ram]}]=$(free -m | awk '/^Mem:/{print $4}')
-    results[${results_cols[cpus]}]=`nproc`
-    results[${results_cols[one_min_load]}]=`uptime | awk -F'[a-z]:' '{print $2}' | awk -F "," '{print $1}' | tr -d " "`
-    results[${results_cols[five_min_load]}]=`uptime | awk -F'[a-z]:' '{print $2}' | awk -F "," '{print $2}' | tr -d " "`
-    results[${results_cols[fifteen_min_load]}]=`uptime | awk -F'[a-z]:' '{print $2}' | awk -F "," '{print $3}' | tr -d " "`
-    results[${results_cols[steal_time]}]=`cat /proc/stat | awk 'NR==1 {print $9}'`
-    results[${results_cols[odl_status]}]=$(odl_status)
+    results[$(name_to_index "total_ram")]=$(free -m | awk '/^Mem:/{print $2}')
+    results[$(name_to_index "used_ram")]=$(free -m | awk '/^Mem:/{print $3}')
+    results[$(name_to_index "free_ram")]=$(free -m | awk '/^Mem:/{print $4}')
+    results[$(name_to_index "cpus")]=`nproc`
+    results[$(name_to_index "one_min_load")]=`uptime | awk -F'[a-z]:' '{print $2}' | awk -F "," '{print $1}' | tr -d " "`
+    results[$(name_to_index "five_min_load")]=`uptime | awk -F'[a-z]:' '{print $2}' | awk -F "," '{print $2}' | tr -d " "`
+    results[$(name_to_index "fifteen_min_load")]=`uptime | awk -F'[a-z]:' '{print $2}' | awk -F "," '{print $3}' | tr -d " "`
+    results[$(name_to_index "steal_time")]=`cat /proc/stat | awk 'NR==1 {print $9}'`
+    results[$(name_to_index "odl_status")]=$(odl_status)
 }
 
 get_remote_system_stats()
@@ -163,17 +172,17 @@ collect_results()
 {
     # Collect results of CBench run
     # Store stats that are not dependent on local vs remote execution
-    results[${results_cols[cbench_avg]}]=$1
-    results[${results_cols[start_time]}]=$2
-    results[${results_cols[end_time]}]=$3
-    results[${results_cols[run_num]}]=$(get_next_run_num)
-    results[${results_cols[human_time]}]=`date`
-    results[${results_cols[controller_ip]}]=$CONTROLLER_IP
-    results[${results_cols[num_switches]}]=$NUM_SWITCHES
-    results[${results_cols[num_macs]}]=$NUM_MACS
-    results[${results_cols[tests_per_switch]}]=$TESTS_PER_SWITCH
-    results[${results_cols[ms_per_test]}]=$MS_PER_TEST
-    results[${results_cols[controller]}]=$CONTROLLER
+    results[$(name_to_index "cbench_avg")]=$1
+    results[$(name_to_index "start_time")]=$2
+    results[$(name_to_index "end_time")]=$3
+    results[$(name_to_index "run_num")]=$(get_next_run_num)
+    results[$(name_to_index "human_time")]=`date`
+    results[$(name_to_index "controller_ip")]=$CONTROLLER_IP
+    results[$(name_to_index "num_switches")]=$NUM_SWITCHES
+    results[$(name_to_index "num_macs")]=$NUM_MACS
+    results[$(name_to_index "tests_per_switch")]=$TESTS_PER_SWITCH
+    results[$(name_to_index "ms_per_test")]=$MS_PER_TEST
+    results[$(name_to_index "controller")]=$CONTROLLER
 
     # Store local or remote stats
     if [ $CONTROLLER_IP = "localhost" ]; then
@@ -187,7 +196,7 @@ write_results()
 {
     # Write collected results to the results file
     i=0
-    while [ $i -lt $(expr ${#results_cols[@]} - 1) ]; do
+    while [ $i -lt $(expr ${#results[@]} - 1) ]; do
         # Only use echo with comma and no newline for all but last col
         echo -n "${results[$i]}," >> $RESULTS_FILE
         let i+=1
@@ -196,14 +205,19 @@ write_results()
     echo "${results[$i]}" >> $RESULTS_FILE
 }
 
-validate_results_file()
+write_header()
 {
-    # Validates that results file has proper header
-    # Other validations can be added if necessary
+    # Writes result file header if this is a new file
     if [ ! -s $RESULTS_FILE ]; then
         echo "$RESULTS_FILE not found or empty, building fresh one" >&2
-        # TODO: Write header
-        echo "temp header" > $RESULTS_FILE
+        i=0
+        while [ $i -lt $(expr ${#cols[@]} - 1) ]; do
+            # Only use echo with comma and no newline for all but last col
+            echo -n "${cols[$i]}," >> $RESULTS_FILE
+            let i+=1
+        done
+        # Finish CSV row with no comma and a newline
+        echo "${cols[$i]}" >> $RESULTS_FILE
     fi
 }
 
@@ -226,7 +240,7 @@ run_cbench()
         echo "Average responses/second: $cbench_avg"
     fi
 
-    validate_results_file
+    write_header
     collect_results $cbench_avg $start_time $end_time
     write_results
 
