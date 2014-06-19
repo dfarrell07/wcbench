@@ -12,7 +12,7 @@ EX_ERR=1
 # Params for CBench test and ODL config
 NUM_SWITCHES=16
 NUM_MACS=100000
-#TESTS_PER_SWITCH=20
+#TESTS_PER_SWITCH=20  # Commented out to speed up testing
 TESTS_PER_SWITCH=2
 MS_PER_TEST=1000
 OSGI_PORT=2400
@@ -23,11 +23,11 @@ ODL_BROKEN_STATUS=1
 CONTROLLER="OpenDaylight"
 CONTROLLER_IP="localhost"
 #CONTROLLER_IP="172.18.14.26"
+CONTROLLER_PORT=6633
 
-# Array that stores results in indexes defined by results_cols
+# Array that stores results in indexes defined by cols array
 declare -a results
-declare -a cols
-# The order of these array values determines order in RESULTS_FILE
+# The order of these array values determines column order in RESULTS_FILE
 cols=(run_num cbench_avg start_time end_time controller_ip human_time
       num_switches num_macs tests_per_switch ms_per_test steal_time
       total_ram used_ram free_ram cpus one_min_load five_min_load
@@ -195,6 +195,7 @@ collect_results()
 write_results()
 {
     # Write collected results to the results file
+    # TODO: Extract duplication with write_header into write_csv
     i=0
     while [ $i -lt $(expr ${#results[@]} - 1) ]; do
         # Only use echo with comma and no newline for all but last col
@@ -208,6 +209,7 @@ write_results()
 write_header()
 {
     # Writes result file header if this is a new file
+    # TODO: Extract duplication with write_results into write_csv
     if [ ! -s $RESULTS_FILE ]; then
         echo "$RESULTS_FILE not found or empty, building fresh one" >&2
         i=0
@@ -226,7 +228,7 @@ run_cbench()
     # Runs the CBench test against the controller
     echo "Running CBench..."
     start_time=`date +%s`
-    cbench_output=`cbench -c $CONTROLLER_IP -p 6633 -m $MS_PER_TEST -l $TESTS_PER_SWITCH -s $NUM_SWITCHES -M $NUM_MACS 2>&1`
+    cbench_output=`cbench -c $CONTROLLER_IP -p $CONTROLLER_PORT -m $MS_PER_TEST -l $TESTS_PER_SWITCH -s $NUM_SWITCHES -M $NUM_MACS 2>&1`
     end_time=`date +%s`
 
     # Parse out average responses/sec, log/handle very rare unexplained errors
