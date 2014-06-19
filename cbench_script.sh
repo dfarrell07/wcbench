@@ -17,17 +17,23 @@ TESTS_PER_SWITCH=2
 MS_PER_TEST=1000
 OSGI_PORT=2400
 ODL_STARTUP_DELAY=90
-HEADER="run_num,flows_per_second,start_time,end_time,controller_ip"
-# TODO: Remove verbose concept
-VERBOSE=true
-VERBOSE_HEADER="$HEADER,human_time,num_switches,num_macs,tests_per_switch,ms_per_test,steal_time,total_RAM,used_RAM,free_RAM,CPUs,1_min_load,5_min_load,15_min_load,odl_status,controller"
 ODL_RUNNING_STATUS=0
 ODL_STOPPED_STATUS=255
 ODL_BROKEN_STATUS=1
 CONTROLLER="OpenDaylight"
+CONTROLLER_IP="localhost"
+#CONTROLLER_IP="172.18.14.26"
 
 # Associative array that will store CBench result key:value pairs
-declare -A results
+declare -a results
+declare -A results_cols
+results_cols=([run_num]=0 [cbench_avg]=1 [start_time]=2 [end_time]=3
+              [controller_ip]=4 [human_time]=5 [num_switches]=6
+              [num_macs]=7 [tests_per_switch]=8 [ms_per_test]=9
+              [steal_time]=10 [total_ram]=11 [used_ram]=12
+              [free_ram]=13 [cpus]=14 [one_min_load]=15
+              [five_min_load]=16 [fifteen_min_load]=17 [odl_status]=18
+              [controller]=19)
 
 # Paths used in this script
 BASE_DIR=$HOME
@@ -39,8 +45,6 @@ ODL_ZIP_PATH=$BASE_DIR/$ODL_ZIP
 PLUGIN_DIR=$ODL_DIR/plugins
 RESULTS_FILE=$BASE_DIR/"results.csv"
 CBENCH_LOG=$BASE_DIR/"cbench.log"
-CONTROLLER_IP="localhost"
-#CONTROLLER_IP="172.18.14.26"
 
 usage()
 {
@@ -120,20 +124,8 @@ install_cbench()
 
 get_next_run_num()
 {
-    # Get the number of the next run, validate results file format
-    # Build results file with column headers if it doesn't exist or it's empty
-    # TODO: Break out header-related functionally
-    if [ ! -s $RESULTS_FILE ]; then
-        echo "$RESULTS_FILE not found or empty, building fresh one" >&2
-        if [ $VERBOSE = true -a $CONTROLLER_IP = "localhost" ]; then
-            echo $VERBOSE_HEADER > $RESULTS_FILE
-        else
-            echo $HEADER > $RESULTS_FILE
-        fi
-        echo 0
-        return
-    fi
-
+    # Get the number of the next run
+    # TODO: Can be simplified by using num_lines - 1
     # Handle special case of header-only results file
     num_lines=`wc -l $RESULTS_FILE | awk '{print $1}'`
     if [ $num_lines -eq 1 ]; then
@@ -148,39 +140,40 @@ get_next_run_num()
 
 get_local_system_stats()
 {
-    # Collect stats that provide system and CBench run details
-    results[human_time]=`date`
-    results[total_ram]=$(free -m | awk '/^Mem:/{print $2}')
-    results[used_ram]=$(free -m | awk '/^Mem:/{print $3}')
-    results[free_ram]=$(free -m | awk '/^Mem:/{print $4}')
-    results[cpus]=`nproc`
-    results[one_min_load]=`uptime | awk -F'[a-z]:' '{print $2}' | awk -F "," '{print $1}' | tr -d " "`
-    results[five_min_load]=`uptime | awk -F'[a-z]:' '{print $2}' | awk -F "," '{print $2}' | tr -d " "`
-    results[fifteen_min_load]=`uptime | awk -F'[a-z]:' '{print $2}' | awk -F "," '{print $3}' | tr -d " "`
-    results[steal_time]=`cat /proc/stat | awk 'NR==1 {print $9}'`
-    results[odl_status]=$(odl_status)
+    # Collect stats about local system
+    results[${results_cols[total_ram]}]=$(free -m | awk '/^Mem:/{print $2}')
+    results[${results_cols[used_ram]}]=$(free -m | awk '/^Mem:/{print $3}')
+    results[${results_cols[free_ram]}]=$(free -m | awk '/^Mem:/{print $4}')
+    results[${results_cols[cpus]}]=`nproc`
+    results[${results_cols[one_min_load]}]=`uptime | awk -F'[a-z]:' '{print $2}' | awk -F "," '{print $1}' | tr -d " "`
+    results[${results_cols[five_min_load]}]=`uptime | awk -F'[a-z]:' '{print $2}' | awk -F "," '{print $2}' | tr -d " "`
+    results[${results_cols[fifteen_min_load]}]=`uptime | awk -F'[a-z]:' '{print $2}' | awk -F "," '{print $3}' | tr -d " "`
+    results[${results_cols[steal_time]}]=`cat /proc/stat | awk 'NR==1 {print $9}'`
+    results[${results_cols[odl_status]}]=$(odl_status)
 }
 
 get_remote_system_stats()
 {
+    # Collect stats about remote system
     # TODO: Build 
-    echo "WARNING: Not implemented"
+    echo "WARNING: Not implemented" >&2
 }
 
 collect_results()
 {
-    # Collect results of CBench run and write them to a file
+    # Collect results of CBench run
     # Store stats that are not dependent on local vs remote execution
-    results[cbench_avg]=$1
-    results[start_time]=$2
-    results[end_time]=$3
-    results[run_num]=$(get_next_run_num)
-    results[controller_ip]=$CONTROLLER_IP
-    results[num_switches]=$NUM_SWITCHES
-    results[num_macs]=$NUM_MACS
-    results[tests_per_switch]=$TESTS_PER_SWITCH
-    results[ms_per_test]=$MS_PER_TEST
-    results[controller]=$CONTROLLER
+    results[${results_cols[cbench_avg]}]=$1
+    results[${results_cols[start_time]}]=$2
+    results[${results_cols[end_time]}]=$3
+    results[${results_cols[run_num]}]=$(get_next_run_num)
+    results[${results_cols[human_time]}]=`date`
+    results[${results_cols[controller_ip]}]=$CONTROLLER_IP
+    results[${results_cols[num_switches]}]=$NUM_SWITCHES
+    results[${results_cols[num_macs]}]=$NUM_MACS
+    results[${results_cols[tests_per_switch]}]=$TESTS_PER_SWITCH
+    results[${results_cols[ms_per_test]}]=$MS_PER_TEST
+    results[${results_cols[controller]}]=$CONTROLLER
 
     # Store local or remote stats
     if [ $CONTROLLER_IP = "localhost" ]; then
@@ -193,28 +186,25 @@ collect_results()
 write_results()
 {
     # Write collected results to the results file
-    # Bash associative arrays are unordered
-    # We need to guarantee CSV file order, so we can't loop to print :(
-    echo -n "${results[run_num]}," >> $RESULTS_FILE
-    echo -n "${results[cbench_avg]}," >> $RESULTS_FILE
-    echo -n "${results[start_time]}," >> $RESULTS_FILE
-    echo -n "${results[end_time]}," >> $RESULTS_FILE
-    echo -n "${results[controller_ip]}," >> $RESULTS_FILE
-    echo -n "${results[human_time]}," >> $RESULTS_FILE
-    echo -n "${results[num_switches]}," >> $RESULTS_FILE
-    echo -n "${results[num_macs]}," >> $RESULTS_FILE
-    echo -n "${results[tests_per_switch]}," >> $RESULTS_FILE
-    echo -n "${results[ms_per_test]}," >> $RESULTS_FILE
-    echo -n "${results[steal_time]}," >> $RESULTS_FILE
-    echo -n "${results[total_ram]}," >> $RESULTS_FILE
-    echo -n "${results[used_ram]}," >> $RESULTS_FILE
-    echo -n "${results[free_ram]}," >> $RESULTS_FILE
-    echo -n "${results[cpus]}," >> $RESULTS_FILE
-    echo -n "${results[one_min_load]}," >> $RESULTS_FILE
-    echo -n "${results[five_min_load]}," >> $RESULTS_FILE
-    echo -n "${results[fifteen_min_load]}," >> $RESULTS_FILE
-    echo -n "${results[odl_status]}," >> $RESULTS_FILE
-    echo "${results[controller]}" >> $RESULTS_FILE
+    i=0
+    while [ $i -lt $(expr ${#results_cols[@]} - 1) ]; do
+        # Only use echo with comma and no newline for all but last col
+        echo -n "${results[$i]}," >> $RESULTS_FILE
+        let i+=1
+    done
+    # Finish CSV row with no comma and a newline
+    echo "${results[$i]}" >> $RESULTS_FILE
+}
+
+validate_results_file()
+{
+    # Validates that results file has proper header
+    # Other validations can be added if necessary
+    if [ ! -s $RESULTS_FILE ]; then
+        echo "$RESULTS_FILE not found or empty, building fresh one" >&2
+        # TODO: Write header
+        echo "temp header" > $RESULTS_FILE
+    fi
 }
 
 run_cbench()
@@ -236,6 +226,7 @@ run_cbench()
         echo "Average responses/second: $cbench_avg"
     fi
 
+    validate_results_file
     collect_results $cbench_avg $start_time $end_time
     write_results
 
