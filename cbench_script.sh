@@ -27,6 +27,7 @@ CONTROLLER_IP="localhost"
 # Array that stores results in indexes defined by results_cols
 declare -a results
 declare -a cols
+# The order of these array values determines order in RESULTS_FILE
 cols=(run_num cbench_avg start_time end_time controller_ip human_time
       num_switches num_macs tests_per_switch ms_per_test steal_time
       total_ram used_ram free_ram cpus one_min_load five_min_load
@@ -122,17 +123,16 @@ install_cbench()
 get_next_run_num()
 {
     # Get the number of the next run
-    # TODO: Can be simplified by using num_lines - 1
-    # Handle special case of header-only results file
-    num_lines=`wc -l $RESULTS_FILE | awk '{print $1}'`
-    if [ $num_lines -eq 1 ]; then
+    # Assumes that the file hasn't had rows removed by a human
+    # Check if there's actually a results file
+    if [ ! -s $RESULTS_FILE ]; then
         echo 0
         return
     fi
 
-    # Get the last run number, add one for next run number
-    next_run_num=$(expr $(cat $RESULTS_FILE | cut -d, -f1 | tail -n 1) + 1)
-    echo $next_run_num
+    # There should be one header row, then rows starting with 0, counting up
+    num_lines=`wc -l $RESULTS_FILE | awk '{print $1}'`
+    echo $(expr $num_lines - 1)
 }
 
 name_to_index()
