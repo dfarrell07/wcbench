@@ -120,7 +120,7 @@ install_cbench()
     fi
 }
 
-get_next_run_num()
+next_run_num()
 {
     # Get the number of the next run
     # Assumes that the file hasn't had rows removed by a human
@@ -175,7 +175,7 @@ collect_results()
     results[$(name_to_index "cbench_avg")]=$1
     results[$(name_to_index "start_time")]=$2
     results[$(name_to_index "end_time")]=$3
-    results[$(name_to_index "run_num")]=$(get_next_run_num)
+    results[$(name_to_index "run_num")]=$(next_run_num)
     results[$(name_to_index "human_time")]=`date`
     results[$(name_to_index "controller_ip")]=$CONTROLLER_IP
     results[$(name_to_index "num_switches")]=$NUM_SWITCHES
@@ -234,7 +234,7 @@ run_cbench()
     cbench_avg=`echo "$cbench_output" | grep RESULT | awk '{print $8}' | awk -F'/' '{print $3}'`
     if [ $cbench_avg = "" ]; then
         echo "WARNING: Rare error occurred: failed to parse avg. See $CBENCH_LOG." >&2
-        echo "Run TODO_run_num failed to record a CBench average. CBench details:" >> $CBENCH_LOG
+        echo "Run $(next_run_num) failed to record a CBench average. CBench details:" >> $CBENCH_LOG
         echo "$cbench_output" >> $CBENCH_LOG
     else
         echo "Average responses/second: $cbench_avg"
