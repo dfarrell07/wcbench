@@ -31,7 +31,18 @@ declare -a results
 cols=(run_num cbench_avg start_time end_time controller_ip human_time
       num_switches num_macs tests_per_switch ms_per_test steal_time
       total_ram used_ram free_ram cpus one_min_load five_min_load
-      fifteen_min_load odl_status controller)
+      fifteen_min_load controller)
+
+# TODO doc
+declare -A stats_cmds
+stats_cmds=([total_ram]="$(free -m | awk '/^Mem:/{print $2}')"
+            [used_ram]="$(free -m | awk '/^Mem:/{print $3}')"
+            [free_ram]="$(free -m | awk '/^Mem:/{print $4}')"
+            [cpus]="`nproc`"
+            [one_min_load]="`uptime | awk -F'[a-z]:' '{print $2}' | awk -F "," '{print $1}' | tr -d " "`"
+            [five_min_load]="`uptime | awk -F'[a-z]:' '{print $2}' | awk -F "," '{print $2}' | tr -d " "`"
+            [fifteen_min_load]="`uptime | awk -F'[a-z]:' '{print $2}' | awk -F "," '{print $3}' | tr -d " "`"
+            [steal_time]="`cat /proc/stat | awk 'NR==1 {print $9}'`")
 
 # Paths used in this script
 BASE_DIR=$HOME
@@ -150,28 +161,27 @@ name_to_index()
 get_local_system_stats()
 {
     # Collect stats about local system
-    results[$(name_to_index "total_ram")]=$(free -m | awk '/^Mem:/{print $2}')
-    results[$(name_to_index "used_ram")]=$(free -m | awk '/^Mem:/{print $3}')
-    results[$(name_to_index "free_ram")]=$(free -m | awk '/^Mem:/{print $4}')
-    results[$(name_to_index "cpus")]=`nproc`
-    results[$(name_to_index "one_min_load")]=`uptime | awk -F'[a-z]:' '{print $2}' | awk -F "," '{print $1}' | tr -d " "`
-    results[$(name_to_index "five_min_load")]=`uptime | awk -F'[a-z]:' '{print $2}' | awk -F "," '{print $2}' | tr -d " "`
-    results[$(name_to_index "fifteen_min_load")]=`uptime | awk -F'[a-z]:' '{print $2}' | awk -F "," '{print $3}' | tr -d " "`
-    results[$(name_to_index "steal_time")]=`cat /proc/stat | awk 'NR==1 {print $9}'`
-    results[$(name_to_index "odl_status")]=$(odl_status)
+    results[$(name_to_index "total_ram")]=${stats_cmds[total_ram]}
+    results[$(name_to_index "used_ram")]=${stats_cmds[used_ram]}
+    results[$(name_to_index "free_ram")]=${stats_cmds[free_ram]}
+    results[$(name_to_index "cpus")]=${stats_cmds[cpus]}
+    results[$(name_to_index "one_min_load")]=${stats_cmds[one_min_load]}
+    results[$(name_to_index "five_min_load")]=${stats_cmds[five_min_load]}
+    results[$(name_to_index "fifteen_min_load")]=${stats_cmds[fifteen_min_load]}
+    results[$(name_to_index "steal_time")]=${stats_cmds[steal_time]}
 }
 
 get_remote_system_stats()
 {
     # Collect stats about remote system
-    # TODO: Build 
+    # TODO: Build
     echo "WARNING: Not implemented" >&2
 }
 
 collect_results()
 {
     # Collect results of CBench run
-    # Store stats that are not dependent on local vs remote execution
+    # Store stats that have nothing to do with the system that's running ODL
     results[$(name_to_index "cbench_avg")]=$1
     results[$(name_to_index "start_time")]=$2
     results[$(name_to_index "end_time")]=$3
