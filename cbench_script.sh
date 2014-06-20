@@ -192,35 +192,18 @@ collect_results()
     fi
 }
 
-write_results()
+write_csv_row()
 {
-    # Write collected results to the results file
-    # TODO: Extract duplication with write_header into write_csv
+    # Accepts an array and writes it in CSV format to the results file
+    declare -a array_to_write=("${!1}")
     i=0
-    while [ $i -lt $(expr ${#results[@]} - 1) ]; do
+    while [ $i -lt $(expr ${#array_to_write[@]} - 1) ]; do
         # Only use echo with comma and no newline for all but last col
-        echo -n "${results[$i]}," >> $RESULTS_FILE
+        echo -n "${array_to_write[$i]}," >> $RESULTS_FILE
         let i+=1
     done
     # Finish CSV row with no comma and a newline
-    echo "${results[$i]}" >> $RESULTS_FILE
-}
-
-write_header()
-{
-    # Writes result file header if this is a new file
-    # TODO: Extract duplication with write_results into write_csv
-    if [ ! -s $RESULTS_FILE ]; then
-        echo "$RESULTS_FILE not found or empty, building fresh one" >&2
-        i=0
-        while [ $i -lt $(expr ${#cols[@]} - 1) ]; do
-            # Only use echo with comma and no newline for all but last col
-            echo -n "${cols[$i]}," >> $RESULTS_FILE
-            let i+=1
-        done
-        # Finish CSV row with no comma and a newline
-        echo "${cols[$i]}" >> $RESULTS_FILE
-    fi
+    echo "${array_to_write[$i]}" >> $RESULTS_FILE
 }
 
 run_cbench()
@@ -242,9 +225,13 @@ run_cbench()
         echo "Average responses/second: $cbench_avg"
     fi
 
-    write_header
+    # Write header if this is a fresh results file
+    if [ ! -s $RESULTS_FILE ]; then
+        echo "$RESULTS_FILE not found or empty, building fresh one" >&2
+        write_csv_row cols[@]
+    fi
     collect_results $cbench_avg $start_time $end_time
-    write_results
+    write_csv_row results[@]
 
     # TODO: Integrate with Jenkins Plot Plugin
 }
