@@ -9,7 +9,7 @@ results_file = "results.csv"
 flow_index = 1
 start_time_index = 2
 end_time_index = 3
-used_ram_index = 12
+used_ram_index = 13
 precision = 3
 
 flows_col = []
