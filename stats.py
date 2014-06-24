@@ -10,6 +10,7 @@ flow_index = 1
 start_time_index = 2
 end_time_index = 3
 used_ram_index = 12
+precision = 3
 
 flows_col = []
 runtime_col = []
@@ -36,19 +37,20 @@ results["null_flow_results"] = null_flow_results
 # Calculate CBench flows/second stats
 results["cbench_min"] = int(round(numpy.amin(flows_col)))
 results["cbench_max"] = int(round(numpy.amax(flows_col)))
-results["cbench_mean"] = int(round(numpy.mean(flows_col)))
-results["cbench_standard_deviation"] = int(round(numpy.std(flows_col)))
+results["cbench_mean"] = round(numpy.mean(flows_col), precision)
+results["cbench_standard_deviation"] = round(numpy.std(flows_col), precision)
+results["cbench_relative_std_dev"] = round((numpy.std(flows_col) / numpy.mean(flows_col)) * 100, precision)
 
 # Calculate CBench runtime stats
-results["runtime_min"] = int(round(numpy.amin(runtime_col)))
-results["runtime_max"] = int(round(numpy.amax(runtime_col)))
-results["runtime_mean"] = int(round(numpy.mean(runtime_col)))
-results["runtime_standard_deviation"] = int(round(numpy.std(runtime_col)))
+results["runtime_min"] = int(numpy.amin(runtime_col))
+results["runtime_max"] = int(numpy.amax(runtime_col))
+results["runtime_mean"] = round(numpy.mean(runtime_col), precision)
+results["runtime_standard_deviation"] = round(numpy.std(runtime_col), precision)
 
 # Calculate used RAM stats
-results["used_ram_min"] = int(round(numpy.amin(used_ram_col)))
-results["used_ram_max"] = int(round(numpy.amax(used_ram_col)))
-results["used_ram_mean"] = int(round(numpy.mean(used_ram_col)))
-results["used_ram_standard_deviation"] = int(round(numpy.std(used_ram_col)))
+results["used_ram_min"] = int(numpy.amin(used_ram_col))
+results["used_ram_max"] = int(numpy.amax(used_ram_col))
+results["used_ram_mean"] = round(numpy.mean(used_ram_col), precision)
+results["used_ram_standard_deviation"] = round(numpy.std(used_ram_col), precision)
 
 pprint.pprint(results)
