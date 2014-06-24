@@ -29,8 +29,8 @@ ODL_RUNNING_STATUS=0
 ODL_STOPPED_STATUS=255
 ODL_BROKEN_STATUS=1
 CONTROLLER="OpenDaylight"
-#CONTROLLER_IP="localhost"
-CONTROLLER_IP="172.18.14.26"
+CONTROLLER_IP="localhost"
+#CONTROLLER_IP="172.18.14.26"
 CONTROLLER_PORT=6633
 SSH_HOSTNAME="cbenchc"
 
@@ -41,7 +41,7 @@ declare -a results
 cols=(run_num cbench_avg start_time end_time controller_ip human_time
       num_switches num_macs tests_per_switch ms_per_test steal_time
       total_ram used_ram free_ram cpus one_min_load five_min_load
-      fifteen_min_load controller)
+      fifteen_min_load controller iowait)
 
 # This two-stat-array system is needed until I find an answer to this question:
 # http://goo.gl/e0M8Tp
@@ -55,6 +55,7 @@ local_stats_cmds=([total_ram]="$(free -m | awk '/^Mem:/{print $2}')"
             [one_min_load]="`uptime | awk -F'[a-z]:' '{print $2}' | awk -F "," '{print $1}' | tr -d " "`"
             [five_min_load]="`uptime | awk -F'[a-z]:' '{print $2}' | awk -F "," '{print $2}' | tr -d " "`"
             [fifteen_min_load]="`uptime | awk -F'[a-z]:' '{print $2}' | awk -F "," '{print $3}' | tr -d " "`"
+            [iowait]="`cat /proc/stat | awk 'NR==1 {print $6}'`"
             [steal_time]="`cat /proc/stat | awk 'NR==1 {print $9}'`")
 
 # Associative array with stats-collecting commands for remote system
@@ -67,6 +68,7 @@ remote_stats_cmds=([total_ram]='free -m | awk '"'"'/^Mem:/{print $2}'"'"''
             [one_min_load]='uptime | awk -F'"'"'[a-z]:'"'"' '"'"'{print $2}'"'"' | awk -F "," '"'"'{print $1}'"'"' | tr -d " "'
             [five_min_load]='uptime | awk -F'"'"'[a-z]:'"'"' '"'"'{print $2}'"'"' | awk -F "," '"'"'{print $2}'"'"' | tr -d " "'
             [fifteen_min_load]='uptime | awk -F'"'"'[a-z]:'"'"' '"'"'{print $2}'"'"' | awk -F "," '"'"'{print $3}'"'"' | tr -d " "'
+            [iowait]='cat /proc/stat | awk '"'"'NR==1 {print $6}'"'"''
             [steal_time]='cat /proc/stat | awk '"'"'NR==1 {print $9}'"'"'')
 
 # Paths used in this script
@@ -195,6 +197,7 @@ get_local_system_stats()
     results[$(name_to_index "five_min_load")]=${local_stats_cmds[five_min_load]}
     results[$(name_to_index "fifteen_min_load")]=${local_stats_cmds[fifteen_min_load]}
     results[$(name_to_index "steal_time")]=${local_stats_cmds[steal_time]}
+    results[$(name_to_index "iowait")]=${local_stats_cmds[iowait]}
 }
 
 get_remote_system_stats()
@@ -209,6 +212,7 @@ get_remote_system_stats()
     results[$(name_to_index "five_min_load")]=$(ssh $SSH_HOSTNAME "${remote_stats_cmds[five_min_load]}" 2> /dev/null)
     results[$(name_to_index "fifteen_min_load")]=$(ssh $SSH_HOSTNAME "${remote_stats_cmds[fifteen_min_load]}" 2> /dev/null)
     results[$(name_to_index "steal_time")]=$(ssh $SSH_HOSTNAME "${remote_stats_cmds[steal_time]}" 2> /dev/null)
+    results[$(name_to_index "iowait")]=$(ssh $SSH_HOSTNAME "${remote_stats_cmds[iowait]}" 2> /dev/null)
 }
 
 collect_results()
