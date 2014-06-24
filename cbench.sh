@@ -20,8 +20,8 @@ EX_ERR=1
 # Params for CBench test and ODL config
 NUM_SWITCHES=16
 NUM_MACS=100000
-#TESTS_PER_SWITCH=20  # Commented out to speed up testing
-TESTS_PER_SWITCH=2
+TESTS_PER_SWITCH=20  # Comment out to speed up testing of this script
+#TESTS_PER_SWITCH=2  # ^^Then uncomment this one
 MS_PER_TEST=1000
 OSGI_PORT=2400
 ODL_STARTUP_DELAY=90
@@ -186,7 +186,7 @@ name_to_index()
 get_local_system_stats()
 {
     # Collect stats about local system
-    echo "Collecting local system stats..."
+    echo "Collecting local system stats"
     results[$(name_to_index "total_ram")]=${local_stats_cmds[total_ram]}
     results[$(name_to_index "used_ram")]=${local_stats_cmds[used_ram]}
     results[$(name_to_index "free_ram")]=${local_stats_cmds[free_ram]}
@@ -200,7 +200,7 @@ get_local_system_stats()
 get_remote_system_stats()
 {
     # Collect stats about remote system
-    echo "Collecting remote system stats..."
+    echo "Collecting remote system stats"
     results[$(name_to_index "total_ram")]=$(ssh $SSH_HOSTNAME "${remote_stats_cmds[total_ram]}" 2> /dev/null)
     results[$(name_to_index "used_ram")]=$(ssh $SSH_HOSTNAME "${remote_stats_cmds[used_ram]}" 2> /dev/null)
     results[$(name_to_index "free_ram")]=$(ssh $SSH_HOSTNAME "${remote_stats_cmds[free_ram]}" 2> /dev/null)
@@ -252,7 +252,6 @@ write_csv_row()
 run_cbench()
 {
     # Runs the CBench test against the controller
-    echo "Running CBench..."
     start_time=`date +%s`
     cbench_output=`cbench -c $CONTROLLER_IP -p $CONTROLLER_PORT -m $MS_PER_TEST -l $TESTS_PER_SWITCH -s $NUM_SWITCHES -M $NUM_MACS 2>&1`
     end_time=`date +%s`
@@ -295,6 +294,7 @@ install_opendaylight()
     fi
 
     # Install required packages
+    echo "Installing OpenDaylight dependencies"
     sudo yum install -y java-1.7.0-openjdk unzip wget &> /dev/null
 
     # Grab last successful build
