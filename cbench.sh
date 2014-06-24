@@ -29,23 +29,38 @@ ODL_RUNNING_STATUS=0
 ODL_STOPPED_STATUS=255
 ODL_BROKEN_STATUS=1
 CONTROLLER="OpenDaylight"
-CONTROLLER_IP="localhost"
-#CONTROLLER_IP="172.18.14.26"
+#CONTROLLER_IP="localhost"
+CONTROLLER_IP="172.18.14.26"
 CONTROLLER_PORT=6633
 SSH_HOSTNAME="cbenchc"
 
 # Array that stores results in indexes defined by cols array
 declare -a results
+
 # The order of these array values determines column order in RESULTS_FILE
 cols=(run_num cbench_avg start_time end_time controller_ip human_time
       num_switches num_macs tests_per_switch ms_per_test steal_time
       total_ram used_ram free_ram cpus one_min_load five_min_load
       fifteen_min_load controller)
 
-# TODO doc
+# This two-stat-array system is needed until I find an answer to this question:
+# http://goo.gl/e0M8Tp
+
+# Associative array with stats-collecting commands for local system
+declare -A local_stats_cmds
+local_stats_cmds=([total_ram]="$(free -m | awk '/^Mem:/{print $2}')"
+            [used_ram]="$(free -m | awk '/^Mem:/{print $3}')"
+            [free_ram]="$(free -m | awk '/^Mem:/{print $4}')"
+            [cpus]="`nproc`"
+            [one_min_load]="`uptime | awk -F'[a-z]:' '{print $2}' | awk -F "," '{print $1}' | tr -d " "`"
+            [five_min_load]="`uptime | awk -F'[a-z]:' '{print $2}' | awk -F "," '{print $2}' | tr -d " "`"
+            [fifteen_min_load]="`uptime | awk -F'[a-z]:' '{print $2}' | awk -F "," '{print $3}' | tr -d " "`"
+            [steal_time]="`cat /proc/stat | awk 'NR==1 {print $9}'`")
+
+# Associative array with stats-collecting commands for remote system
 # See this for explanation of horrible-looking quoting: http://goo.gl/PMI5ag
-declare -A stats_cmds
-stats_cmds=([total_ram]='free -m | awk '"'"'/^Mem:/{print $2}'"'"''
+declare -A remote_stats_cmds
+remote_stats_cmds=([total_ram]='free -m | awk '"'"'/^Mem:/{print $2}'"'"''
             [used_ram]='free -m | awk '"'"'/^Mem:/{print $3}'"'"''
             [free_ram]='free -m | awk '"'"'/^Mem:/{print $4}'"'"''
             [cpus]='nproc'
@@ -171,27 +186,29 @@ name_to_index()
 get_local_system_stats()
 {
     # Collect stats about local system
-    #results[$(name_to_index "total_ram")]=$( ${stats_cmds[total_ram]} )
-    #results[$(name_to_index "used_ram")]=$(${stats_cmds[used_ram]})
-    #results[$(name_to_index "free_ram")]=$(${stats_cmds[free_ram]})
-    results[$(name_to_index "cpus")]=$( ${stats_cmds[cpus]} )
-    #results[$(name_to_index "one_min_load")]=$(${stats_cmds[one_min_load]})
-    #results[$(name_to_index "five_min_load")]=$(${stats_cmds[five_min_load]})
-    #results[$(name_to_index "fifteen_min_load")]=$(${stats_cmds[fifteen_min_load]})
-    #results[$(name_to_index "steal_time")]=$(${stats_cmds[steal_time]})
+    echo "Collecting local system stats..."
+    results[$(name_to_index "total_ram")]=${local_stats_cmds[total_ram]}
+    results[$(name_to_index "used_ram")]=${local_stats_cmds[used_ram]}
+    results[$(name_to_index "free_ram")]=${local_stats_cmds[free_ram]}
+    results[$(name_to_index "cpus")]=${local_stats_cmds[cpus]}
+    results[$(name_to_index "one_min_load")]=${local_stats_cmds[one_min_load]}
+    results[$(name_to_index "five_min_load")]=${local_stats_cmds[five_min_load]}
+    results[$(name_to_index "fifteen_min_load")]=${local_stats_cmds[fifteen_min_load]}
+    results[$(name_to_index "steal_time")]=${local_stats_cmds[steal_time]}
 }
 
 get_remote_system_stats()
 {
     # Collect stats about remote system
-    results[$(name_to_index "total_ram")]=$(ssh $SSH_HOSTNAME "${stats_cmds[total_ram]}")
-    results[$(name_to_index "used_ram")]=$(ssh $SSH_HOSTNAME "${stats_cmds[used_ram]}")
-    results[$(name_to_index "free_ram")]=$(ssh $SSH_HOSTNAME "${stats_cmds[free_ram]}")
-    results[$(name_to_index "cpus")]=$(ssh $SSH_HOSTNAME "${stats_cmds[cpus]}")
-    results[$(name_to_index "one_min_load")]=$(ssh $SSH_HOSTNAME "${stats_cmds[one_min_load]}")
-    results[$(name_to_index "five_min_load")]=$(ssh $SSH_HOSTNAME "${stats_cmds[five_min_load]}")
-    results[$(name_to_index "fifteen_min_load")]=$(ssh $SSH_HOSTNAME "${stats_cmds[fifteen_min_load]}")
-    results[$(name_to_index "steal_time")]=$(ssh $SSH_HOSTNAME "${stats_cmds[steal_time]}")
+    echo "Collecting remote system stats..."
+    results[$(name_to_index "total_ram")]=$(ssh $SSH_HOSTNAME "${remote_stats_cmds[total_ram]}" 2> /dev/null)
+    results[$(name_to_index "used_ram")]=$(ssh $SSH_HOSTNAME "${remote_stats_cmds[used_ram]}" 2> /dev/null)
+    results[$(name_to_index "free_ram")]=$(ssh $SSH_HOSTNAME "${remote_stats_cmds[free_ram]}" 2> /dev/null)
+    results[$(name_to_index "cpus")]=$(ssh $SSH_HOSTNAME "${remote_stats_cmds[cpus]}" 2> /dev/null)
+    results[$(name_to_index "one_min_load")]=$(ssh $SSH_HOSTNAME "${remote_stats_cmds[one_min_load]}" 2> /dev/null)
+    results[$(name_to_index "five_min_load")]=$(ssh $SSH_HOSTNAME "${remote_stats_cmds[five_min_load]}" 2> /dev/null)
+    results[$(name_to_index "fifteen_min_load")]=$(ssh $SSH_HOSTNAME "${remote_stats_cmds[fifteen_min_load]}" 2> /dev/null)
+    results[$(name_to_index "steal_time")]=$(ssh $SSH_HOSTNAME "${remote_stats_cmds[steal_time]}" 2> /dev/null)
 }
 
 collect_results()
