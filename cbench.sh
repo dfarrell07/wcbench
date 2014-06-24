@@ -39,9 +39,9 @@ declare -a results
 
 # The order of these array values determines column order in RESULTS_FILE
 cols=(run_num cbench_avg start_time end_time controller_ip human_time
-      num_switches num_macs tests_per_switch ms_per_test steal_time
-      total_ram used_ram free_ram cpus one_min_load five_min_load
-      fifteen_min_load controller iowait)
+      num_switches num_macs tests_per_switch ms_per_test start_steal_time
+      end_steal_time total_ram used_ram free_ram cpus one_min_load five_min_load
+      fifteen_min_load controller start_iowait end_iowait)
 
 # This two-stat-array system is needed until I find an answer to this question:
 # http://goo.gl/e0M8Tp
@@ -185,60 +185,6 @@ name_to_index()
     done
 }
 
-get_local_system_stats()
-{
-    # Collect stats about local system
-    echo "Collecting local system stats"
-    results[$(name_to_index "total_ram")]=${local_stats_cmds[total_ram]}
-    results[$(name_to_index "used_ram")]=${local_stats_cmds[used_ram]}
-    results[$(name_to_index "free_ram")]=${local_stats_cmds[free_ram]}
-    results[$(name_to_index "cpus")]=${local_stats_cmds[cpus]}
-    results[$(name_to_index "one_min_load")]=${local_stats_cmds[one_min_load]}
-    results[$(name_to_index "five_min_load")]=${local_stats_cmds[five_min_load]}
-    results[$(name_to_index "fifteen_min_load")]=${local_stats_cmds[fifteen_min_load]}
-    results[$(name_to_index "steal_time")]=${local_stats_cmds[steal_time]}
-    results[$(name_to_index "iowait")]=${local_stats_cmds[iowait]}
-}
-
-get_remote_system_stats()
-{
-    # Collect stats about remote system
-    echo "Collecting remote system stats"
-    results[$(name_to_index "total_ram")]=$(ssh $SSH_HOSTNAME "${remote_stats_cmds[total_ram]}" 2> /dev/null)
-    results[$(name_to_index "used_ram")]=$(ssh $SSH_HOSTNAME "${remote_stats_cmds[used_ram]}" 2> /dev/null)
-    results[$(name_to_index "free_ram")]=$(ssh $SSH_HOSTNAME "${remote_stats_cmds[free_ram]}" 2> /dev/null)
-    results[$(name_to_index "cpus")]=$(ssh $SSH_HOSTNAME "${remote_stats_cmds[cpus]}" 2> /dev/null)
-    results[$(name_to_index "one_min_load")]=$(ssh $SSH_HOSTNAME "${remote_stats_cmds[one_min_load]}" 2> /dev/null)
-    results[$(name_to_index "five_min_load")]=$(ssh $SSH_HOSTNAME "${remote_stats_cmds[five_min_load]}" 2> /dev/null)
-    results[$(name_to_index "fifteen_min_load")]=$(ssh $SSH_HOSTNAME "${remote_stats_cmds[fifteen_min_load]}" 2> /dev/null)
-    results[$(name_to_index "steal_time")]=$(ssh $SSH_HOSTNAME "${remote_stats_cmds[steal_time]}" 2> /dev/null)
-    results[$(name_to_index "iowait")]=$(ssh $SSH_HOSTNAME "${remote_stats_cmds[iowait]}" 2> /dev/null)
-}
-
-collect_results()
-{
-    # Collect results of CBench run
-    # Store stats that have nothing to do with the system that's running ODL
-    results[$(name_to_index "cbench_avg")]=$1
-    results[$(name_to_index "start_time")]=$2
-    results[$(name_to_index "end_time")]=$3
-    results[$(name_to_index "run_num")]=$(next_run_num)
-    results[$(name_to_index "human_time")]=`date`
-    results[$(name_to_index "controller_ip")]=$CONTROLLER_IP
-    results[$(name_to_index "num_switches")]=$NUM_SWITCHES
-    results[$(name_to_index "num_macs")]=$NUM_MACS
-    results[$(name_to_index "tests_per_switch")]=$TESTS_PER_SWITCH
-    results[$(name_to_index "ms_per_test")]=$MS_PER_TEST
-    results[$(name_to_index "controller")]=$CONTROLLER
-
-    # Store local or remote stats
-    if [ $CONTROLLER_IP = "localhost" ]; then
-        get_local_system_stats
-    else
-        get_remote_system_stats
-    fi
-}
-
 write_csv_row()
 {
     # Accepts an array and writes it in CSV format to the results file
@@ -253,12 +199,89 @@ write_csv_row()
     echo "${array_to_write[$i]}" >> $RESULTS_FILE
 }
 
+get_pre_test_stats()
+{
+    echo "Collecting pre-test stats"
+    results[$(name_to_index "start_time")]=`date +%s`
+    if [ $CONTROLLER_IP = "localhost" ]; then
+        results[$(name_to_index "start_iowait")]=${local_stats_cmds[iowait]}
+        results[$(name_to_index "start_steal_time")]=${local_stats_cmds[steal_time]}
+    else
+        results[$(name_to_index "start_iowait")]=$(ssh $SSH_HOSTNAME "${remote_stats_cmds[iowait]}" 2> /dev/null)
+        results[$(name_to_index "start_steal_time")]=$(ssh $SSH_HOSTNAME "${remote_stats_cmds[steal_time]}" 2> /dev/null)
+    fi
+}
+
+get_post_test_stats()
+{
+    # Collect system stats post CBench test
+    # Pre and post test collection is needed for computing the change in stats
+    # Start by collecting always-local stats that are time-sensitive
+    echo "Collecting post-test stats"
+    results[$(name_to_index "end_time")]=`date +%s`
+    results[$(name_to_index "human_time")]=`date`
+
+    # Now collect local/remote stats that are time-sensative
+    if [ $CONTROLLER_IP = "localhost" ]; then
+        results[$(name_to_index "end_iowait")]=${local_stats_cmds[iowait]}
+        results[$(name_to_index "end_steal_time")]=${local_stats_cmds[steal_time]}
+        results[$(name_to_index "one_min_load")]=${local_stats_cmds[one_min_load]}
+        results[$(name_to_index "five_min_load")]=${local_stats_cmds[five_min_load]}
+        results[$(name_to_index "fifteen_min_load")]=${local_stats_cmds[fifteen_min_load]}
+    else
+        results[$(name_to_index "end_iowait")]=$(ssh $SSH_HOSTNAME "${remote_stats_cmds[iowait]}" 2> /dev/null)
+        results[$(name_to_index "end_steal_time")]=$(ssh $SSH_HOSTNAME "${remote_stats_cmds[steal_time]}" 2> /dev/null)
+        results[$(name_to_index "one_min_load")]=$(ssh $SSH_HOSTNAME "${remote_stats_cmds[one_min_load]}" 2> /dev/null)
+        results[$(name_to_index "five_min_load")]=$(ssh $SSH_HOSTNAME "${remote_stats_cmds[five_min_load]}" 2> /dev/null)
+        results[$(name_to_index "fifteen_min_load")]=$(ssh $SSH_HOSTNAME "${remote_stats_cmds[fifteen_min_load]}" 2> /dev/null)
+    fi
+}
+
+get_time_irrelevant_stats()
+{
+    # Collect always-local stats that aren't time-sensitive
+    echo "Collecting time-irrelevant stats"
+    results[$(name_to_index "run_num")]=$(next_run_num)
+    results[$(name_to_index "controller_ip")]=$CONTROLLER_IP
+    results[$(name_to_index "num_switches")]=$NUM_SWITCHES
+    results[$(name_to_index "num_macs")]=$NUM_MACS
+    results[$(name_to_index "tests_per_switch")]=$TESTS_PER_SWITCH
+    results[$(name_to_index "ms_per_test")]=$MS_PER_TEST
+    results[$(name_to_index "controller")]=$CONTROLLER
+
+    # Store local or remote stats that aren't time-sensitive
+    if [ $CONTROLLER_IP = "localhost" ]; then
+        results[$(name_to_index "total_ram")]=${local_stats_cmds[total_ram]}
+        results[$(name_to_index "used_ram")]=${local_stats_cmds[used_ram]}
+        results[$(name_to_index "free_ram")]=${local_stats_cmds[free_ram]}
+        results[$(name_to_index "cpus")]=${local_stats_cmds[cpus]}
+    else
+        results[$(name_to_index "total_ram")]=$(ssh $SSH_HOSTNAME "${remote_stats_cmds[total_ram]}" 2> /dev/null)
+        results[$(name_to_index "used_ram")]=$(ssh $SSH_HOSTNAME "${remote_stats_cmds[used_ram]}" 2> /dev/null)
+        results[$(name_to_index "free_ram")]=$(ssh $SSH_HOSTNAME "${remote_stats_cmds[free_ram]}" 2> /dev/null)
+        results[$(name_to_index "cpus")]=$(ssh $SSH_HOSTNAME "${remote_stats_cmds[cpus]}" 2> /dev/null)
+    fi
+}
+
+write_results()
+{
+    # Write data stored in results array to results file
+    # Write header if this is a fresh results file
+    if [ ! -s $RESULTS_FILE ]; then
+        echo "$RESULTS_FILE not found or empty, building fresh one" >&2
+        write_csv_row cols[@]
+    fi
+    write_csv_row results[@]
+}
+
 run_cbench()
 {
     # Runs the CBench test against the controller
-    start_time=`date +%s`
+    get_pre_test_stats
+    echo "Running CBench against ODL on $CONTROLLER_IP:$CONTROLLER_PORT"
     cbench_output=`cbench -c $CONTROLLER_IP -p $CONTROLLER_PORT -m $MS_PER_TEST -l $TESTS_PER_SWITCH -s $NUM_SWITCHES -M $NUM_MACS 2>&1`
-    end_time=`date +%s`
+    get_post_test_stats
+    get_time_irrelevant_stats
 
     # Parse out average responses/sec, log/handle very rare unexplained errors
     # This logic can be removed if/when the root cause of this error is discovered and fixed
@@ -269,15 +292,11 @@ run_cbench()
         echo "$cbench_output" >> $CBENCH_LOG
     else
         echo "Average responses/second: $cbench_avg"
+        results[$(name_to_index "cbench_avg")]=$cbench_avg
     fi
 
-    # Write header if this is a fresh results file
-    if [ ! -s $RESULTS_FILE ]; then
-        echo "$RESULTS_FILE not found or empty, building fresh one" >&2
-        write_csv_row cols[@]
-    fi
-    collect_results $cbench_avg $start_time $end_time
-    write_csv_row results[@]
+    # Write results to results file
+    write_results
 
     # TODO: Integrate with Jenkins Plot Plugin
 }
@@ -458,9 +477,6 @@ while getopts ":hrciokd" opt; do
                     echo "OpenDaylight isn't started, can't run test"
                     exit $EX_ERR
                 fi
-                echo "Running CBench against ODL on localhost"
-            else
-                echo "Running CBench against ODL on $CONTROLLER_IP"
             fi
             run_cbench
             ;;
