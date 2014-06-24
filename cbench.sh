@@ -345,26 +345,14 @@ odl_installed()
     fi
 }
 
-odl_status()
-{
-    # Checks if OpenDaylight is running
-    # TOOD: Collapse back into odl_started
-    # Assumes you've checked that ODL is installed
-    old_cwd=$PWD
-    cd $ODL_DIR
-    ./run.sh -status &> /dev/null
-    odl_status=$?
-    cd $old_cwd
-    echo $odl_status
-}
-
 odl_started()
 {
     # Checks if OpenDaylight is running
     # Assumes you've checked that ODL is installed
     old_cwd=$PWD
     cd $ODL_DIR
-    if [ $(odl_status) = 0 ]; then
+    ./run.sh -status &> /dev/null
+    if [ $? = 0 ]; then
         return $EX_OK
     else
         return $EX_NOT_FOUND
