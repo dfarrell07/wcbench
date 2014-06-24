@@ -3,6 +3,14 @@
 # TODO: Support latency and throughput modes
 # TODO: Support for running against other controllers
 
+# For remote runs, you must have .ssh/config setup such that `ssh $SSH_HOSTMANE` works w/o pw
+# Example host setup in .ssh/config:
+# Host cbench
+#     Hostname 209.132.178.170
+#     User fedora
+#     IdentityFile /home/daniel/.ssh/id_rsa_nopass
+#     StrictHostKeyChecking no
+
 # Exit codes
 EX_USAGE=64
 EX_NOT_FOUND=65
@@ -24,6 +32,7 @@ CONTROLLER="OpenDaylight"
 CONTROLLER_IP="localhost"
 #CONTROLLER_IP="172.18.14.26"
 CONTROLLER_PORT=6633
+SSH_HOSTNAME="cbenchc"
 
 # Array that stores results in indexes defined by cols array
 declare -a results
@@ -34,15 +43,16 @@ cols=(run_num cbench_avg start_time end_time controller_ip human_time
       fifteen_min_load controller)
 
 # TODO doc
+# See this for explanation of horrible-looking quoting: http://goo.gl/PMI5ag
 declare -A stats_cmds
-stats_cmds=([total_ram]="$(free -m | awk '/^Mem:/{print $2}')"
-            [used_ram]="$(free -m | awk '/^Mem:/{print $3}')"
-            [free_ram]="$(free -m | awk '/^Mem:/{print $4}')"
-            [cpus]="`nproc`"
-            [one_min_load]="`uptime | awk -F'[a-z]:' '{print $2}' | awk -F "," '{print $1}' | tr -d " "`"
-            [five_min_load]="`uptime | awk -F'[a-z]:' '{print $2}' | awk -F "," '{print $2}' | tr -d " "`"
-            [fifteen_min_load]="`uptime | awk -F'[a-z]:' '{print $2}' | awk -F "," '{print $3}' | tr -d " "`"
-            [steal_time]="`cat /proc/stat | awk 'NR==1 {print $9}'`")
+stats_cmds=([total_ram]='free -m | awk '"'"'/^Mem:/{print $2}'"'"''
+            [used_ram]='free -m | awk '"'"'/^Mem:/{print $3}'"'"''
+            [free_ram]='free -m | awk '"'"'/^Mem:/{print $4}'"'"''
+            [cpus]='nproc'
+            [one_min_load]='uptime | awk -F'"'"'[a-z]:'"'"' '"'"'{print $2}'"'"' | awk -F "," '"'"'{print $1}'"'"' | tr -d " "'
+            [five_min_load]='uptime | awk -F'"'"'[a-z]:'"'"' '"'"'{print $2}'"'"' | awk -F "," '"'"'{print $2}'"'"' | tr -d " "'
+            [fifteen_min_load]='uptime | awk -F'"'"'[a-z]:'"'"' '"'"'{print $2}'"'"' | awk -F "," '"'"'{print $3}'"'"' | tr -d " "'
+            [steal_time]='cat /proc/stat | awk '"'"'NR==1 {print $9}'"'"'')
 
 # Paths used in this script
 BASE_DIR=$HOME
@@ -161,21 +171,27 @@ name_to_index()
 get_local_system_stats()
 {
     # Collect stats about local system
-    results[$(name_to_index "total_ram")]=${stats_cmds[total_ram]}
-    results[$(name_to_index "used_ram")]=${stats_cmds[used_ram]}
-    results[$(name_to_index "free_ram")]=${stats_cmds[free_ram]}
-    results[$(name_to_index "cpus")]=${stats_cmds[cpus]}
-    results[$(name_to_index "one_min_load")]=${stats_cmds[one_min_load]}
-    results[$(name_to_index "five_min_load")]=${stats_cmds[five_min_load]}
-    results[$(name_to_index "fifteen_min_load")]=${stats_cmds[fifteen_min_load]}
-    results[$(name_to_index "steal_time")]=${stats_cmds[steal_time]}
+    #results[$(name_to_index "total_ram")]=$( ${stats_cmds[total_ram]} )
+    #results[$(name_to_index "used_ram")]=$(${stats_cmds[used_ram]})
+    #results[$(name_to_index "free_ram")]=$(${stats_cmds[free_ram]})
+    results[$(name_to_index "cpus")]=$( ${stats_cmds[cpus]} )
+    #results[$(name_to_index "one_min_load")]=$(${stats_cmds[one_min_load]})
+    #results[$(name_to_index "five_min_load")]=$(${stats_cmds[five_min_load]})
+    #results[$(name_to_index "fifteen_min_load")]=$(${stats_cmds[fifteen_min_load]})
+    #results[$(name_to_index "steal_time")]=$(${stats_cmds[steal_time]})
 }
 
 get_remote_system_stats()
 {
     # Collect stats about remote system
-    # TODO: Build
-    echo "WARNING: Not implemented" >&2
+    results[$(name_to_index "total_ram")]=$(ssh $SSH_HOSTNAME "${stats_cmds[total_ram]}")
+    results[$(name_to_index "used_ram")]=$(ssh $SSH_HOSTNAME "${stats_cmds[used_ram]}")
+    results[$(name_to_index "free_ram")]=$(ssh $SSH_HOSTNAME "${stats_cmds[free_ram]}")
+    results[$(name_to_index "cpus")]=$(ssh $SSH_HOSTNAME "${stats_cmds[cpus]}")
+    results[$(name_to_index "one_min_load")]=$(ssh $SSH_HOSTNAME "${stats_cmds[one_min_load]}")
+    results[$(name_to_index "five_min_load")]=$(ssh $SSH_HOSTNAME "${stats_cmds[five_min_load]}")
+    results[$(name_to_index "fifteen_min_load")]=$(ssh $SSH_HOSTNAME "${stats_cmds[fifteen_min_load]}")
+    results[$(name_to_index "steal_time")]=$(ssh $SSH_HOSTNAME "${stats_cmds[steal_time]}")
 }
 
 collect_results()
@@ -227,7 +243,7 @@ run_cbench()
     # Parse out average responses/sec, log/handle very rare unexplained errors
     # This logic can be removed if/when the root cause of this error is discovered and fixed
     cbench_avg=`echo "$cbench_output" | grep RESULT | awk '{print $8}' | awk -F'/' '{print $3}'`
-    if [ $cbench_avg = "" ]; then
+    if [ -z "$cbench_avg" ]; then
         echo "WARNING: Rare error occurred: failed to parse avg. See $CBENCH_LOG." >&2
         echo "Run $(next_run_num) failed to record a CBench average. CBench details:" >> $CBENCH_LOG
         echo "$cbench_output" >> $CBENCH_LOG
@@ -292,6 +308,7 @@ odl_installed()
 odl_status()
 {
     # Checks if OpenDaylight is running
+    # TOOD: Collapse back into odl_started
     # Assumes you've checked that ODL is installed
     old_cwd=$PWD
     cd $ODL_DIR
@@ -343,6 +360,7 @@ issue_odl_config()
     # Give dropAllPackets command via telnet to OSGi
     # This is a bit of a hack, but it's the only method I know of
     # See: https://ask.opendaylight.org/question/146/issue-non-interactive-gogo-shell-command/
+    # TODO: There seems to be a timing-related bug here. More delay? Smarter check?
     if ! command -v telnet &>/dev/null; then
         sudo yum install -y telnet
     fi
@@ -368,6 +386,8 @@ stop_opendaylight()
 cleanup()
 {
     # Removes ODL zipped/unzipped, openflow code, CBench code
+    # TODO: Remove CBench binary
+    # TODO: Break out into uninstall_odl, uninstall_cbench
     if [ -d $ODL_DIR ]; then
         echo "Removing $ODL_DIR"
         rm -rf $ODL_DIR
