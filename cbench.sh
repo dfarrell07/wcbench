@@ -389,8 +389,9 @@ issue_odl_config()
     # This is a bit of a hack, but it's the only method I know of
     # See: https://ask.opendaylight.org/question/146/issue-non-interactive-gogo-shell-command/
     # TODO: There seems to be a timing-related bug here. More delay? Smarter check?
-    if ! command -v telnet &>/dev/null; then
-        sudo yum install -y telnet
+    if ! command -v telnet &> /dev/null; then
+        echo "Installing telnet, as it's required for issuing ODL config."
+        sudo yum install -y telnet &> /dev/null
     fi
     echo "Issuing \`dropAllPacketsRpc on\` command via telnet to localhost:$OSGI_PORT"
     # NB: Not using sleeps results in silent failures (cmd has no effect)
