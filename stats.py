@@ -6,15 +6,21 @@ import numpy
 import pprint
 
 results_file = "results.csv"
+precision = 3
 flow_index = 1
 start_time_index = 2
 end_time_index = 3
+start_steal_time_index = 10
+end_steal_time_index = 11
 used_ram_index = 13
-precision = 3
+start_iowait_index = 20
+end_iowait_index = 21
 
 flows_col = []
 runtime_col = []
 used_ram_col = []
+iowait_col= []
+steal_time_col= []
 null_flow_results = 0
 with open(results_file, "rb") as f:
     reader = csv.reader(f)
@@ -29,6 +35,8 @@ with open(results_file, "rb") as f:
         # Subtract end_time from start_time to get CBench runtime
         runtime_col.append(float(row[end_time_index]) - float(row[start_time_index]))
         used_ram_col.append(float(row[used_ram_index]))
+        iowait_col.append(float(row[end_iowait_index]) - float(row[start_iowait_index]))
+        steal_time_col.append(float(row[end_steal_time_index]) - float(row[start_steal_time_index]))
 
 results = {}
 results["sample_size"] = len(flows_col)
@@ -52,5 +60,17 @@ results["used_ram_min"] = int(numpy.amin(used_ram_col))
 results["used_ram_max"] = int(numpy.amax(used_ram_col))
 results["used_ram_mean"] = round(numpy.mean(used_ram_col), precision)
 results["used_ram_standard_deviation"] = round(numpy.std(used_ram_col), precision)
+
+# Calculate iowait stats
+results["iowait_min"] = int(numpy.amin(iowait_col))
+results["iowait_max"] = int(numpy.amax(iowait_col))
+results["iowait_mean"] = round(numpy.mean(iowait_col), precision)
+results["iowait_standard_deviation"] = round(numpy.std(iowait_col), precision)
+
+# Calculate steal_time stats
+results["steal_time_min"] = int(numpy.amin(steal_time_col))
+results["steal_time_max"] = int(numpy.amax(steal_time_col))
+results["steal_time_mean"] = round(numpy.mean(steal_time_col), precision)
+results["steal_time_standard_deviation"] = round(numpy.std(steal_time_col), precision)
 
 pprint.pprint(results)
