@@ -447,7 +447,7 @@ if [ $# -eq 0 ]; then
 fi
 
 
-while getopts ":hrciokd" opt; do
+while getopts ":hrciot:kd" opt; do
     case "$opt" in
         h)
             # Help message
@@ -483,6 +483,17 @@ while getopts ":hrciokd" opt; do
                 exit $EX_ERR
             fi
             start_opendaylight
+            ;;
+        t)
+            # Set CBench run time in minutes
+            if ! odl_installed; then
+                echo "OpenDaylight isn't installed, can't start it"
+                exit $EX_ERR
+            fi
+            # Convert minutes to milliseconds
+            MS_PER_TEST=$((${OPTARG} * 60 * 1000))
+            TESTS_PER_SWITCH=1
+            echo "Set MS_PER_TEST to $MS_PER_TEST, TESTS_PER_SWITCH to $TESTS_PER_SWITCH"
             ;;
         k)
             # Kill OpenDaylight
