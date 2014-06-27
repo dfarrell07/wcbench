@@ -81,6 +81,7 @@ ODL_ZIP_PATH=$BASE_DIR/$ODL_ZIP
 PLUGIN_DIR=$ODL_DIR/plugins
 RESULTS_FILE=$BASE_DIR/"results.csv"
 CBENCH_LOG=$BASE_DIR/"cbench.log"
+CBENCH_BIN="/usr/local/bin/cbench"
 
 usage()
 {
@@ -301,20 +302,24 @@ run_cbench()
     # TODO: Integrate with Jenkins Plot Plugin
 }
 
+uninstall_odl()
+{
+    # Uninstall OpenDaylight zipped and unzipped code
+    if [ -d $ODL_DIR ]; then
+        echo "Removing $ODL_DIR"
+        rm -rf $ODL_DIR
+    fi
+    if [ -f $ODL_ZIP_PATH ]; then
+        echo "Removing $ODL_ZIP_PATH"
+        rm -f $ODL_ZIP_PATH
+    fi
+}
+
 install_opendaylight()
 {
     # Installs latest build of the OpenDaylight controller
     # Remove old controller code
-    if [ -d $ODL_DIR ]
-    then
-        echo "Removing $ODL_DIR"
-        rm -rf $ODL_DIR
-    fi
-    if [ -f $ODL_ZIP_PATH ]
-    then
-        echo "Removing $ODL_ZIP_PATH"
-        rm -f $ODL_ZIP_PATH
-    fi
+    uninstall_odl
 
     # Install required packages
     echo "Installing OpenDaylight dependencies"
@@ -412,19 +417,9 @@ stop_opendaylight()
     cd $old_cwd
 }
 
-cleanup()
+uninstall_cbench()
 {
-    # Removes ODL zipped/unzipped, openflow code, CBench code
-    # TODO: Remove CBench binary
-    # TODO: Break out into uninstall_odl, uninstall_cbench
-    if [ -d $ODL_DIR ]; then
-        echo "Removing $ODL_DIR"
-        rm -rf $ODL_DIR
-    fi
-    if [ -f $ODL_ZIP_PATH ]; then
-        echo "Removing $ODL_ZIP_PATH"
-        rm -rf $ODL_ZIP_PATH
-    fi
+    # Uninstall CBench binary and the code that built it
     if [ -d $OF_DIR ]; then
         echo "Removing $OF_DIR"
         rm -rf $OF_DIR
@@ -432,6 +427,10 @@ cleanup()
     if [ -d $OFLOPS_DIR ]; then
         echo "Removing $OFLOPS_DIR"
         rm -rf $OFLOPS_DIR
+    fi
+    if [ -f $CBENCH_BIN ]; then
+        echo "Removing $CBENCH_BIN"
+        sudo rm -f $CBENCH_BIN
     fi
 }
 
@@ -443,7 +442,7 @@ if [ $# -eq 0 ]; then
     start_opendaylight
     run_cbench
     stop_opendaylight
-    cleanup
+    uninstall_odl
     exit $EX_OK
 fi
 
@@ -498,8 +497,9 @@ while getopts ":hrciokd" opt; do
             stop_opendaylight
             ;;
         d)
-            # Delete local ODL code (zipped/unzipped), OFLOPS code, OF code
-            cleanup
+            # Delete local ODL and CBench code
+            uninstall_odl
+            uninstall_cbench
             ;;
         *)
             usage
