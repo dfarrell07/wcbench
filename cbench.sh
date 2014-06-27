@@ -23,6 +23,7 @@ NUM_MACS=100000
 TESTS_PER_SWITCH=20  # Comment out to speed up testing of this script
 #TESTS_PER_SWITCH=2  # ^^Then uncomment this one
 MS_PER_TEST=1000
+CBENCH_WARMUP=1
 OSGI_PORT=2400
 ODL_STARTUP_DELAY=90
 ODL_RUNNING_STATUS=0
@@ -280,7 +281,7 @@ run_cbench()
     # Runs the CBench test against the controller
     get_pre_test_stats
     echo "Running CBench against ODL on $CONTROLLER_IP:$CONTROLLER_PORT"
-    cbench_output=`cbench -c $CONTROLLER_IP -p $CONTROLLER_PORT -m $MS_PER_TEST -l $TESTS_PER_SWITCH -s $NUM_SWITCHES -M $NUM_MACS 2>&1`
+    cbench_output=`cbench -c $CONTROLLER_IP -p $CONTROLLER_PORT -m $MS_PER_TEST -l $TESTS_PER_SWITCH -s $NUM_SWITCHES -M $NUM_MACS -w $CBENCH_WARMUP 2>&1`
     get_post_test_stats
     get_time_irrelevant_stats
 
@@ -493,7 +494,8 @@ while getopts ":hrciot:kd" opt; do
             # Convert minutes to milliseconds
             MS_PER_TEST=$((${OPTARG} * 60 * 1000))
             TESTS_PER_SWITCH=1
-            echo "Set MS_PER_TEST to $MS_PER_TEST, TESTS_PER_SWITCH to $TESTS_PER_SWITCH"
+            CBENCH_WARMUP=0
+            echo "Set MS_PER_TEST to $MS_PER_TEST, TESTS_PER_SWITCH to $TESTS_PER_SWITCH, CBENCH_WARMUP to $CBENCH_WARMUP"
             ;;
         k)
             # Kill OpenDaylight
