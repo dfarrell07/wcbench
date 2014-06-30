@@ -292,6 +292,7 @@ run_cbench()
         echo "WARNING: Rare error occurred: failed to parse avg. See $CBENCH_LOG." >&2
         echo "Run $(next_run_num) failed to record a CBench average. CBench details:" >> $CBENCH_LOG
         echo "$cbench_output" >> $CBENCH_LOG
+        return
     else
         echo "Average responses/second: $cbench_avg"
         results[$(name_to_index "cbench_avg")]=$cbench_avg
