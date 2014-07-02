@@ -63,7 +63,7 @@ if [ $# -eq 0 ]; then
 fi
 
 
-while getopts ":hrt:" opt; do
+while getopts ":lhrt:" opt; do
     case "$opt" in
         h)
             # Help message
