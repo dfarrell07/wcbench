@@ -126,7 +126,7 @@ install_cbench()
     fi
 
     # Install required packages
-    echo "Installing CBench dependences"
+    echo "Installing CBench dependencies"
     sudo yum install -y net-snmp-devel libpcap-devel autoconf make automake libtool libconfig-devel git &> /dev/null
 
     # Clone repo that contains CBench
