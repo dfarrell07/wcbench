@@ -18,11 +18,11 @@ EX_OK=0
 EX_ERR=1
 
 # Params for CBench test and ODL config
-NUM_SWITCHES=16
+NUM_SWITCHES=256
 NUM_MACS=100000
-TESTS_PER_SWITCH=20  # Comment out to speed up testing of this script
+TESTS_PER_SWITCH=10  # Comment out to speed up testing of this script
 #TESTS_PER_SWITCH=2  # ^^Then uncomment this one
-MS_PER_TEST=1000
+MS_PER_TEST=10000
 CBENCH_WARMUP=1
 OSGI_PORT=2400
 ODL_STARTUP_DELAY=90
@@ -95,8 +95,10 @@ Setup and run CBench and OpenDaylight
 OPTIONS:
     -h Show this message
     -r Run CBench against OpenDaylight
+    -t <seconds> Run CBench for given number of seconds
     -c Install CBench
     -i Install ODL from last sucessful build
+    -p <processors> Peg ODL to given number of processors
     -o Run ODL from last sucessful build
     -k Kill OpenDaylight
     -d Delete local ODL code
@@ -377,7 +379,16 @@ start_opendaylight()
         return $EX_OK
     else
         echo "Starting OpenDaylight"
-        ./run.sh -start $OSGI_PORT -of13 -Xms1g -Xmx4g &> /dev/null
+        if [ -z $processors ]; then
+            ./run.sh -start $OSGI_PORT -of13 -Xms1g -Xmx4g &> /dev/null
+        else
+            echo "Pinning ODL to $processors processor(s)"
+            if [ $processors == 1 ]; then
+                echo "Increasing ODL start time, as 1 processor will slow it down"
+                ODL_STARTUP_DELAY=120
+            fi
+            taskset -c 0-$(expr $processors - 1) ./run.sh -start $OSGI_PORT -of13 -Xms1g -Xmx4g &> /dev/null
+        fi
     fi
     cd $old_cwd
     # TODO: Smarter block until ODL is actually up
@@ -449,7 +460,7 @@ if [ $# -eq 0 ]; then
 fi
 
 
-while getopts ":hrciot:kd" opt; do
+while getopts ":hrcip:ot:kd" opt; do
     case "$opt" in
         h)
             # Help message
@@ -477,6 +488,19 @@ while getopts ":hrciot:kd" opt; do
         i)
             # Install OpenDaylight from last successful build
             install_opendaylight
+            ;;
+        p)
+            # Peg a given number of processors
+            # Note that this option must be given before -o (start ODL)
+            if odl_started; then
+                echo "OpenDaylight is already running, can't adjust processors"
+                exit $EX_ERR
+            fi
+            processors=${OPTARG}
+            if [ $processors -lt 1 ]; then
+                echo "Can't peg ODL to less than one processor"
+                exit $EX_USAGE
+            fi
             ;;
         o)
             # Run OpenDaylight from last successful build

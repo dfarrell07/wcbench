@@ -18,6 +18,7 @@ OPTIONS:
     -l Loop CBench runs without restarting ODL
     -r Loop CBench runs, restart ODL between runs
     -t Run CBench for a given number of minutes
+    -p <processors> Peg ODL to given number of processors
 EOF
 }
 
@@ -25,6 +26,10 @@ EOF
 loop_no_restart()
 {
     # Repeatedly run CBench against ODL without restarting ODL
+    if [ -z $processors ]; then
+        ./run.sh -start $OSGI_PORT -of13 -Xms1g -Xmx4g &> /dev/null
+    else
+        echo "Pinning ODL to $processors processor(s)"
     # Start ODL
     ./cbench.sh -o
     while :; do
@@ -74,6 +79,15 @@ while getopts ":lhrt:" opt; do
             # Loop without restarting ODL between CBench runs
             echo "Looping CBench against ODL without restarting ODL between runs"
             loop_no_restart
+            ;;
+        p)
+            # Peg a given number of processors
+            # Note that this option must be given before -o (start ODL)
+            processors=${OPTARG}
+            if [ $processors -lt 1 ]; then
+                echo "Can't peg ODL to less than one processor"
+                exit $EX_USAGE
+            fi
             ;;
         r)
             # Restart ODL between each CBench run
