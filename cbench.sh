@@ -90,18 +90,18 @@ usage()
     cat << EOF
 Usage $0 [options]
 
-Setup and run CBench and OpenDaylight
+Setup and/or run CBench and/or OpenDaylight.
 
 OPTIONS:
     -h Show this message
-    -r Run CBench against OpenDaylight
-    -t <seconds> Run CBench for given number of seconds
     -c Install CBench
+    -t <time> Run CBench for given number of minutes
+    -r Run CBench against OpenDaylight
     -i Install ODL from last sucessful build
-    -p <processors> Peg ODL to given number of processors
+    -p <processors> Pin ODL to given number of processors
     -o Run ODL from last sucessful build
     -k Kill OpenDaylight
-    -d Delete local ODL code
+    -d Delete local ODL and CBench code
 EOF
 }
 
@@ -449,16 +449,9 @@ uninstall_cbench()
 
 # If executed with no options
 if [ $# -eq 0 ]; then
-    echo "No options given. Installing ODL+CBench and running test."
-    install_cbench
-    install_opendaylight
-    start_opendaylight
-    run_cbench
-    stop_opendaylight
-    uninstall_odl
-    exit $EX_OK
+    usage
+    exit $EX_USAGE
 fi
-
 
 while getopts ":hrcip:ot:kd" opt; do
     case "$opt" in
@@ -490,7 +483,7 @@ while getopts ":hrcip:ot:kd" opt; do
             install_opendaylight
             ;;
         p)
-            # Peg a given number of processors
+            # Pin a given number of processors
             # Note that this option must be given before -o (start ODL)
             if odl_started; then
                 echo "OpenDaylight is already running, can't adjust processors"
@@ -498,7 +491,7 @@ while getopts ":hrcip:ot:kd" opt; do
             fi
             processors=${OPTARG}
             if [ $processors -lt 1 ]; then
-                echo "Can't peg ODL to less than one processor"
+                echo "Can't pin ODL to less than one processor"
                 exit $EX_USAGE
             fi
             ;;
