@@ -332,6 +332,10 @@ install_opendaylight()
     # Grab last successful build
     echo "Downloading last successful ODL build"
     wget -P $BASE_DIR "https://jenkins.opendaylight.org/integration/job/integration-master-project-centralized-integration/lastSuccessfulBuild/artifact/distributions/base/target/$ODL_ZIP" &> /dev/null
+    if [ ! -f $ODL_ZIP_PATH ]; then
+        echo "WARNING: Failed to dl ODL. Version bumped? If so, update \$ODL_ZIP" >&2
+        return $EX_ERR
+    fi
     echo "Unzipping last successful ODL build"
     unzip -d $BASE_DIR $ODL_ZIP_PATH &> /dev/null
 
