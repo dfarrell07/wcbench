@@ -33,7 +33,6 @@ class Stats(object):
         """Setup some flags and data structures, kick off build_cols call."""
         self.build_cols()
         self.results = {}
-        self.some_stats_computed = False
         self.results["sample_size"] = len(self.run_col)
 
     def build_cols(self):
@@ -80,7 +79,6 @@ class Stats(object):
             numpy.mean(self.flows_col)) * \
             100, self.precision)
         self.results["flows"] = flow_stats
-        self.some_stats_computed = True
 
     def build_flow_graph(self, total_graph_count, graph_num):
         """Plot flows/sec data.
@@ -105,7 +103,6 @@ class Stats(object):
         ram_stats["mean"] = round(numpy.mean(self.used_ram_col), self.precision)
         ram_stats["stddev"] = round(numpy.std(self.used_ram_col), self.precision)
         self.results["ram"] = ram_stats
-        self.some_stats_computed = True
 
     def build_ram_graph(self, total_graph_count, graph_num):
         """Plot used RAM data.
@@ -123,14 +120,40 @@ class Stats(object):
         pyplot.xlabel("Run Number")
         pyplot.ylabel("Used RAM")
 
+    def compute_runtime_stats(self):
+        """Compute CBench runtime length stats."""
+        runtime_stats = {}
+        runtime_stats["min"] = int(numpy.amin(self.runtime_col))
+        runtime_stats["max"] = int(numpy.amax(self.runtime_col))
+        runtime_stats["mean"] = round(numpy.mean(self.runtime_col), self.precision)
+        runtime_stats["stddev"] = round(numpy.std(self.runtime_col), self.precision)
+        self.results["runtime"] = runtime_stats
+
+    def build_runtime_graph(self, total_graph_count, graph_num):
+        """Plot CBench runtime length data.
+
+        :paruntime total_graph_count: Total number of graphs to render.
+        :type total_graph_count: int
+        :paruntime graph_num: Number for this graph, <= total_graph_count.
+        :type graph_num: int
+
+        """
+        # Paruntimes are numrows, numcols, fignum
+        pyplot.subplot(total_graph_count, 1, graph_num)
+        # "go" means green O's
+        pyplot.plot(self.run_col, self.runtime_col, "go")
+        pyplot.xlabel("Run Number")
+        pyplot.ylabel("CBench runtime (sec)")
 
 # Build stats object
 stats = Stats()
 
 # Map of graph names to the Stats.fns that build them
 graph_map = {"flows": stats.build_flow_graph,
+             "runtime": stats.build_runtime_graph,
              "ram": stats.build_ram_graph}
 stats_map = {"flows": stats.compute_flow_stats,
+             "runtime": stats.compute_runtime_stats,
              "ram": stats.compute_ram_stats}
 
 # Build argument parser
