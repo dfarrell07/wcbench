@@ -11,7 +11,15 @@ import sys
 
 class Stats(object):
 
-    """Compute stats and/or graph data."""
+    """Compute stats and/or graph data.
+
+    I know I could convert these fns that simply punt to a helper
+    to a dict/list data structure, but that would remove some of the
+    flexabilty I get by simply calling a graph/stat fn for each
+    graph/stat arg. All current fns just punt to helpers, but future
+    ones might not.
+
+    """
 
     results_file = "results.csv"
     log_file = "cbench.log"
