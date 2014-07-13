@@ -136,12 +136,13 @@ if len(sys.argv) == 1:
 # Parse the given args
 args = parser.parse_args()
 
+# Build graphs
 if args.all_graphs:
-    for graph_fn in graph_map.values():
-        graph_fn()
+    graphs_to_build = graph_map.keys()
 else:
-    for graph, graph_num in zip(args.graphs, range(len(args.graphs))):
-        graph_map[graph](len(args.graphs), graph_num+1)
+    graphs_to_build = args.graphs
+for graph, graph_num in zip(graphs_to_build, range(len(graphs_to_build))):
+    graph_map[graph](len(graphs_to_build), graph_num+1)
 
 if args.flows or args.all:
     stats.compute_flow_stats()
@@ -155,11 +156,11 @@ if stats.some_stats_computed:
 
 if args.graphs or args.all_graphs:
     # Render plot
-    if len(args.graphs) <= 3:
+    if len(graphs_to_build) <= 3:
         pyplot.subplots_adjust(hspace=.2)
-    elif len(args.graphs) <= 6:
+    elif len(graphs_to_build) <= 6:
         pyplot.subplots_adjust(hspace=.4)
-    elif len(args.graphs) <= 9:
+    elif len(graphs_to_build) <= 9:
         pyplot.subplots_adjust(hspace=.7)
     else:
         pyplot.subplots_adjust(hspace=.7)
