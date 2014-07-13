@@ -69,81 +69,83 @@ class Stats(object):
 
     def compute_flow_stats(self):
         """Compute CBench flows/second stats."""
-        flow_stats = {}
-        flow_stats["min"] = int(round(numpy.amin(self.flows_col)))
-        flow_stats["max"] = int(round(numpy.amax(self.flows_col)))
-        flow_stats["mean"] = round(numpy.mean(self.flows_col),
-                                                       self.precision)
-        flow_stats["stddev"] = round(numpy.std(self.flows_col), self.precision)
-        flow_stats["relstddev"] = round((numpy.std(self.flows_col) / \
-            numpy.mean(self.flows_col)) * \
-            100, self.precision)
-        self.results["flows"] = flow_stats
+        self.compute_generic_stats("flows", self.flows_col)
 
-    def build_flow_graph(self, total_graph_count, graph_num):
+    def build_flow_graph(self, total_gcount, graph_num):
         """Plot flows/sec data.
 
-        :param total_graph_count: Total number of graphs to render.
-        :type total_graph_count: int
-        :param graph_num: Number for this graph, <= total_graph_count.
+        :param total_gcount: Total number of graphs to render.
+        :type total_gcount: int
+        :param graph_num: Number for this graph, <= total_gcount.
         :type graph_num: int
 
         """
-        pyplot.subplot(total_graph_count, 1, graph_num)
-        # "go" means green O's
-        pyplot.plot(self.run_col, self.flows_col, "go")
-        pyplot.xlabel("Run Number")
-        pyplot.ylabel("Flows per Second")
+        self.build_generic_graph(total_gcount, graph_num,
+            "Flows per Second", self.flows_col)
 
     def compute_ram_stats(self):
         """Compute used RAM stats."""
-        ram_stats = {}
-        ram_stats["min"] = int(numpy.amin(self.used_ram_col))
-        ram_stats["max"] = int(numpy.amax(self.used_ram_col))
-        ram_stats["mean"] = round(numpy.mean(self.used_ram_col), self.precision)
-        ram_stats["stddev"] = round(numpy.std(self.used_ram_col), self.precision)
-        self.results["ram"] = ram_stats
+        self.compute_generic_stats("used_ram", self.used_ram_col)
 
-    def build_ram_graph(self, total_graph_count, graph_num):
+    def build_ram_graph(self, total_gcount, graph_num):
         """Plot used RAM data.
 
-        :param total_graph_count: Total number of graphs to render.
-        :type total_graph_count: int
-        :param graph_num: Number for this graph, <= total_graph_count.
+        :param total_gcount: Total number of graphs to render.
+        :type total_gcount: int
+        :param graph_num: Number for this graph, <= total_gcount.
         :type graph_num: int
 
         """
-        # Params are numrows, numcols, fignum
-        pyplot.subplot(total_graph_count, 1, graph_num)
-        # "go" means green O's
-        pyplot.plot(self.run_col, self.used_ram_col, "go")
-        pyplot.xlabel("Run Number")
-        pyplot.ylabel("Used RAM")
+        self.build_generic_graph(total_gcount, graph_num,
+            "Used RAM (MB)", self.used_ram_col)
 
     def compute_runtime_stats(self):
         """Compute CBench runtime length stats."""
-        runtime_stats = {}
-        runtime_stats["min"] = int(numpy.amin(self.runtime_col))
-        runtime_stats["max"] = int(numpy.amax(self.runtime_col))
-        runtime_stats["mean"] = round(numpy.mean(self.runtime_col), self.precision)
-        runtime_stats["stddev"] = round(numpy.std(self.runtime_col), self.precision)
-        self.results["runtime"] = runtime_stats
+        self.compute_generic_stats("runtime", self.runtime_col)
 
-    def build_runtime_graph(self, total_graph_count, graph_num):
+    def build_runtime_graph(self, total_gcount, graph_num):
         """Plot CBench runtime length data.
 
-        :paruntime total_graph_count: Total number of graphs to render.
-        :type total_graph_count: int
-        :paruntime graph_num: Number for this graph, <= total_graph_count.
+        :paruntime total_gcount: Total number of graphs to render.
+        :type total_gcount: int
+        :paruntime graph_num: Number for this graph, <= total_gcount.
         :type graph_num: int
 
         """
-        # Paruntimes are numrows, numcols, fignum
-        pyplot.subplot(total_graph_count, 1, graph_num)
+        self.build_generic_graph(total_gcount, graph_num,
+            "CBench Runtime (sec)", self.runtime_col)
+
+    def compute_generic_stats(self, stats_name, stats_col):
+        """Helper for computing generic stats."""
+        generic_stats = {}
+        generic_stats["min"] = int(numpy.amin(stats_col))
+        generic_stats["max"] = int(numpy.amax(stats_col))
+        generic_stats["mean"] = round(numpy.mean(stats_col), self.precision)
+        generic_stats["stddev"] = round(numpy.std(stats_col), self.precision)
+        generic_stats["relstddev"] = round(generic_stats["stddev"] / \
+            generic_stats["mean"] * 100, self.precision)
+        self.results[stats_name] = generic_stats
+
+    def build_generic_graph(self, total_gcount, graph_num, y_label, data_col):
+        """Helper for plotting generic data.
+
+        :pageneric total_gcount: Total number of graphs to render.
+        :type total_gcount: int
+        :pageneric graph_num: Number for this graph, <= total_gcount.
+        :type graph_num: int
+        :param y_label: Lable of Y axis.
+        :type y_label: string
+        :param data_col: Data to graph.
+        :type data_col: list
+
+        """
+        # Pagenerics are numrows, numcols, fignum
+        pyplot.subplot(total_gcount, 1, graph_num)
         # "go" means green O's
-        pyplot.plot(self.run_col, self.runtime_col, "go")
+        pyplot.plot(self.run_col, data_col, "go")
         pyplot.xlabel("Run Number")
-        pyplot.ylabel("CBench runtime (sec)")
+        pyplot.ylabel(y_label)
+
 
 # Build stats object
 stats = Stats()
