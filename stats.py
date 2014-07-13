@@ -115,6 +115,86 @@ class Stats(object):
         self.build_generic_graph(total_gcount, graph_num,
             "CBench Runtime (sec)", self.runtime_col)
 
+    def compute_iowait_stats(self):
+        """Compute iowait stats."""
+        self.compute_generic_stats("iowait", self.iowait_col)
+
+    def build_iowait_graph(self, total_gcount, graph_num):
+        """Plot iowait data.
+
+        :paiowait total_gcount: Total number of graphs to render.
+        :type total_gcount: int
+        :paiowait graph_num: Number for this graph, <= total_gcount.
+        :type graph_num: int
+
+        """
+        self.build_generic_graph(total_gcount, graph_num,
+            "IOWait Time (sec)", self.iowait_col)
+
+    def compute_steal_time_stats(self):
+        """Compute steal time stats."""
+        self.compute_generic_stats("steal_time", self.steal_time_col)
+
+    def build_steal_time_graph(self, total_gcount, graph_num):
+        """Plot steal time data.
+
+        :pasteal_time total_gcount: Total number of graphs to render.
+        :type total_gcount: int
+        :pasteal_time graph_num: Number for this graph, <= total_gcount.
+        :type graph_num: int
+
+        """
+        self.build_generic_graph(total_gcount, graph_num,
+            "Steal Time (sec)", self.steal_time_col)
+
+    def compute_one_load_stats(self):
+        """Compute one minute load stats."""
+        self.compute_generic_stats("one_load", self.one_load_col)
+
+    def build_one_load_graph(self, total_gcount, graph_num):
+        """Plot one minute load data.
+
+        :paone_load total_gcount: Total number of graphs to render.
+        :type total_gcount: int
+        :paone_load graph_num: Number for this graph, <= total_gcount.
+        :type graph_num: int
+
+        """
+        self.build_generic_graph(total_gcount, graph_num,
+            "One Minute Load", self.one_load_col)
+
+    def compute_five_load_stats(self):
+        """Compute five minute load stats."""
+        self.compute_generic_stats("five_load", self.five_load_col)
+
+    def build_five_load_graph(self, total_gcount, graph_num):
+        """Plot five minute load data.
+
+        :pafive_load total_gcount: Total number of graphs to render.
+        :type total_gcount: int
+        :pafive_load graph_num: Number for this graph, <= total_gcount.
+        :type graph_num: int
+
+        """
+        self.build_generic_graph(total_gcount, graph_num,
+            "Five Minute Load", self.five_load_col)
+
+    def compute_fifteen_load_stats(self):
+        """Compute fifteen minute load stats."""
+        self.compute_generic_stats("fifteen_load", self.fifteen_load_col)
+
+    def build_fifteen_load_graph(self, total_gcount, graph_num):
+        """Plot fifteen minute load data.
+
+        :pafifteen_load total_gcount: Total number of graphs to render.
+        :type total_gcount: int
+        :pafifteen_load graph_num: Number for this graph, <= total_gcount.
+        :type graph_num: int
+
+        """
+        self.build_generic_graph(total_gcount, graph_num,
+            "Fifteen Minute Load", self.fifteen_load_col)
+
     def compute_generic_stats(self, stats_name, stats_col):
         """Helper for computing generic stats."""
         generic_stats = {}
@@ -122,8 +202,11 @@ class Stats(object):
         generic_stats["max"] = int(numpy.amax(stats_col))
         generic_stats["mean"] = round(numpy.mean(stats_col), self.precision)
         generic_stats["stddev"] = round(numpy.std(stats_col), self.precision)
-        generic_stats["relstddev"] = round(generic_stats["stddev"] / \
-            generic_stats["mean"] * 100, self.precision)
+        try:
+            generic_stats["relstddev"] = round(generic_stats["stddev"] / \
+                generic_stats["mean"] * 100, self.precision)
+        except ZeroDivisionError:
+            generic_stats["relstddev"] = 0.
         self.results[stats_name] = generic_stats
 
     def build_generic_graph(self, total_gcount, graph_num, y_label, data_col):
@@ -153,9 +236,19 @@ stats = Stats()
 # Map of graph names to the Stats.fns that build them
 graph_map = {"flows": stats.build_flow_graph,
              "runtime": stats.build_runtime_graph,
+             "iowait": stats.build_iowait_graph,
+             "steal_time": stats.build_steal_time_graph,
+             "one_load": stats.build_one_load_graph,
+             "five_load": stats.build_five_load_graph,
+             "fifteen_load": stats.build_fifteen_load_graph,
              "ram": stats.build_ram_graph}
 stats_map = {"flows": stats.compute_flow_stats,
              "runtime": stats.compute_runtime_stats,
+             "iowait": stats.compute_iowait_stats,
+             "steal_time": stats.compute_steal_time_stats,
+             "one_load": stats.compute_one_load_stats,
+             "five_load": stats.compute_five_load_stats,
+             "fifteen_load": stats.compute_fifteen_load_stats,
              "ram": stats.compute_ram_stats}
 
 # Build argument parser
