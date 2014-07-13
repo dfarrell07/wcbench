@@ -11,7 +11,7 @@ import sys
 
 class Stats(object):
 
-    """"""
+    """Compute stats and/or graph data."""
 
     results_file = "results.csv"
     log_file = "cbench.log"
@@ -83,7 +83,14 @@ class Stats(object):
         self.some_stats_computed = True
 
     def build_flow_graph(self, total_graph_count, graph_num):
-        """Plot flows/sec data."""
+        """Plot flows/sec data.
+
+        :param total_graph_count: Total number of graphs to render.
+        :type total_graph_count: int
+        :param graph_num: Number for this graph, <= total_graph_count.
+        :type graph_num: int
+
+        """
         pyplot.subplot(total_graph_count, 1, graph_num)
         # "go" means green O's
         pyplot.plot(self.run_col, self.flows_col, "go")
@@ -101,7 +108,14 @@ class Stats(object):
         self.some_stats_computed = True
 
     def build_ram_graph(self, total_graph_count, graph_num):
-        """Plot used RAM data."""
+        """Plot used RAM data.
+
+        :param total_graph_count: Total number of graphs to render.
+        :type total_graph_count: int
+        :param graph_num: Number for this graph, <= total_graph_count.
+        :type graph_num: int
+
+        """
         # Params are numrows, numcols, fignum
         pyplot.subplot(total_graph_count, 1, graph_num)
         # "go" means green O's
@@ -110,23 +124,26 @@ class Stats(object):
         pyplot.ylabel("Used RAM")
 
 
+# Build stats object
 stats = Stats()
 
 # Map of graph names to the Stats.fns that build them
 graph_map = {"flows": stats.build_flow_graph,
              "ram": stats.build_ram_graph}
+stats_map = {"flows": stats.compute_flow_stats,
+             "ram": stats.compute_ram_stats}
 
+# Build argument parser
 parser = argparse.ArgumentParser(description="Compute stats about CBench data")
-parser.add_argument("-a", "--all", action="store_true",
+parser.add_argument("-S", "--all-stats", action="store_true",
     help="compute all stats")
-parser.add_argument("-A", "--all-graphs", action="store_true",
+parser.add_argument("-s", "--stats", choices=stats_map.keys(),
+    help="compute stats on specified data", nargs="+")
+parser.add_argument("-G", "--all-graphs", action="store_true",
     help="graph all data")
 parser.add_argument("-g", "--graphs", choices=graph_map.keys(),
-    help="graph given data", nargs="+")
-parser.add_argument("-f", "--flows", action="store_true",
-    help="compute flows/sec stats")
-parser.add_argument("-r", "--ram", action="store_true",
-    help="compute used RAM stats")
+    help="graph specified data", nargs="+")
+
 
 # Print help if no arguments are given
 if len(sys.argv) == 1:
@@ -139,23 +156,26 @@ args = parser.parse_args()
 # Build graphs
 if args.all_graphs:
     graphs_to_build = graph_map.keys()
-else:
+elif args.graphs:
     graphs_to_build = args.graphs
+else:
+    graphs_to_build = []
 for graph, graph_num in zip(graphs_to_build, range(len(graphs_to_build))):
     graph_map[graph](len(graphs_to_build), graph_num+1)
 
-if args.flows or args.all:
-    stats.compute_flow_stats()
+# Compute stats
+if args.all_stats:
+    stats_to_compute = stats_map.keys()
+elif args.stats:
+    stats_to_compute = args.stats
+else:
+    stats_to_compute = []
+for stat in stats_to_compute:
+    stats_map[stat]()
 
-if args.ram or args.all:
-    stats.compute_ram_stats()
-
-if stats.some_stats_computed:
-    # Report stat results
-    pprint.pprint(stats.results)
-
+# Render graphs
 if args.graphs or args.all_graphs:
-    # Render plot
+    # Attempt to adjust plot spacing, just a simple heuristic
     if len(graphs_to_build) <= 3:
         pyplot.subplots_adjust(hspace=.2)
     elif len(graphs_to_build) <= 6:
@@ -166,3 +186,7 @@ if args.graphs or args.all_graphs:
         pyplot.subplots_adjust(hspace=.7)
         print "WARNING: That's a lot of graphs. Add a second column?"
     pyplot.show()
+
+# Print stats
+if args.stats or args.all_stats:
+    pprint.pprint(stats.results)
