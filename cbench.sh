@@ -39,8 +39,8 @@ SSH_HOSTNAME="cbenchc"
 declare -a results
 
 # The order of these array values determines column order in RESULTS_FILE
-cols=(run_num cbench_avg start_time end_time controller_ip human_time
-      num_switches num_macs tests_per_switch ms_per_test start_steal_time
+cols=(run_num cbench_min cbench_max cbench_avg start_time end_time controller_ip 
+      human_time num_switches num_macs tests_per_switch ms_per_test start_steal_time
       end_steal_time total_ram used_ram free_ram cpus one_min_load five_min_load
       fifteen_min_load controller start_iowait end_iowait)
 
@@ -289,6 +289,10 @@ run_cbench()
 
     # Parse out average responses/sec, log/handle very rare unexplained errors
     # This logic can be removed if/when the root cause of this error is discovered and fixed
+
+    # adding min and max as we can plot these as well. 
+    cbench_min=`echo "$cbench_output" | grep RESULT | awk '{print $8}' | awk -F'/' '{print $1}'`
+    cbench_max=`echo "$cbench_output" | grep RESULT | awk '{print $8}' | awk -F'/' '{print $2}'`
     cbench_avg=`echo "$cbench_output" | grep RESULT | awk '{print $8}' | awk -F'/' '{print $3}'`
     if [ -z "$cbench_avg" ]; then
         echo "WARNING: Rare error occurred: failed to parse avg. See $CBENCH_LOG." >&2
@@ -296,7 +300,11 @@ run_cbench()
         echo "$cbench_output" >> $CBENCH_LOG
         return
     else
+        echo "Min responses/second: $cbench_min"
+        echo "max responses/sesond: $cbench_max"
         echo "Average responses/second: $cbench_avg"
+        results[$(name_to_index "cbench_min")]=$cbench_min
+        results[$(name_to_index "cbench_max")]=$cbench_max
         results[$(name_to_index "cbench_avg")]=$cbench_avg
     fi
 
@@ -518,6 +526,7 @@ while getopts ":hrcip:ot:kd" opt; do
             TESTS_PER_SWITCH=1
             CBENCH_WARMUP=0
             echo "Set MS_PER_TEST to $MS_PER_TEST, TESTS_PER_SWITCH to $TESTS_PER_SWITCH, CBENCH_WARMUP to $CBENCH_WARMUP"
+            run_cbench
             ;;
         k)
             # Kill OpenDaylight
