@@ -101,8 +101,59 @@ In more detail, the `loop_wcbench.sh` script supports:
 
 #### Usage Details: stats.py
 
-TODO
+The `stats.py` script parses the output of `wcbench.sh`, which is stored in the file pointed at by the `RESULTS_FILE` variable in `wcbench.sh`. See the [WCBench Results](https://github.com/dfarrell07/cbench_regression#wcbench-results) section for more info on the results file. Both pure stats and graphs of results are supported by `stats.py`.
+
+Any set of names for data points can be given to the `-s` flag to calculate their stats and to the `-g` flag to graph them against run numbers. All stats can be computed with `./stats.py -S`, just as all graphs can be generated with `-G`.
+
+Examples are useful:
+
+```
+# CBench flows/sec stats
+./stats.py -s flows
+{'flows': {'max': 15036,
+           'mean': 8958.426,
+           'min': 4981,
+           'relstddev': 32.032,
+           'stddev': 2869.584},
+ 'sample_size': 115}
+```
+
+```
+# Command for graphs of flows/sec and used RAM stats
+./stats.py -g flows ram
+```
+
+Graph results:
+
+TODO: Insert graph
+
 
 ### WCBench Results
 
-TODO
+Results from `wcbench.sh` are stored in the file pointed at by the `RESULTS_FILE` variable in `wcbench.sh`. That variable defaults to `RESULTS_FILE=$BASE_DIR/"results.csv"`, which in turn resolves to `~/results.csv` by default. As you can guess from the file name, results are stored in CSV format. Note that this format was chosen because it's what's consumed by the Jenkins Plot Plugin, which ODL uses to [automatically run a subset of the functionally provided by WCBench against ODL builds](https://jenkins.opendaylight.org/integration/job/integration-master-performance-plugin/plot/).
+
+Note that manually modifying the results file (adding/deleting lines) will cause incorrect run number values.
+
+The data collected by WCBench and stored in the results file for each run includes:
+* A run number for each run, starting at 0 and counting up
+* The flows/sec average from the CBench run
+* Unix time in seconds at the beginning of the run
+* Unix time in seconds at the end of the run
+* The IP address of the controller
+* Human-readable time that the run finished
+* The number of switches simulated by CBench
+* The number of MAC addresses used by CBench
+* The `TESTS_PER_SWITCH` value passed to CBench
+* The duration of each test in milliseconds
+* The steal time on the system running ODL at the start of the test
+* The steal time on the system running ODL at the end of the test
+* The total RAM on the system running ODL
+* The used RAM on the system running ODL at the end of a test run
+* The free RAM on the system running ODL at the end of a test run
+* The number of CPUs on the system running ODL
+* The one minute load of the system running ODL
+* The five minute load of the system running ODL
+* The fifteen minute load of the system running ODL
+* The name of the controller under test
+* The iowait value at the start of the test on the system running ODL
+* The iowait value at the end of the test on the system running ODL
