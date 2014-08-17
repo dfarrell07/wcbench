@@ -29,25 +29,25 @@ start_odl()
     if [ -z $processors ]; then
         # Start ODL, don't pass processor info
         echo "Starting ODL, not passing processor info"
-        ./cbench.sh -o
+        ./wcbench.sh -o
     else
         # Start ODL, pinning it to given number of processors
         echo "Pinning ODL to $processors processor(s)"
-        ./cbench.sh -p $processors -o
+        ./wcbench.sh -p $processors -o
     fi
 }
 
-run_cbench()
+run_wcbench()
 {
     # Run WCBench against ODL, optionally passing a WCBench run time
     if [ -z $run_time ]; then
         # Flag means run WCBench
         echo "Running WCBench, not passing run time info"
-        ./cbench.sh -r
+        ./wcbench.sh -r
     else
         # Flags mean use $run_time WCBench runs, run WCBench
         echo "Running WCBench with $run_time minute(s) run time"
-        ./cbench.sh -t $run_time -r
+        ./wcbench.sh -t $run_time -r
     fi
 }
 
@@ -57,7 +57,7 @@ loop_no_restart()
     echo "Looping WCBench against ODL without restarting ODL"
     while :; do
         start_odl
-        run_cbench
+        run_wcbench
     done
 }
 
@@ -67,9 +67,9 @@ loop_with_restart()
     echo "Looping WCBench against ODL, restarting ODL each run"
     while :; do
         start_odl
-        run_cbench
+        run_wcbench
         # Stop ODL
-        ./cbench.sh -k
+        ./wcbench.sh -k
     done
 }
 
