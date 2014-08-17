@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
-# Helper script to run CBench tests in a loop, used for testing
-# Script assumes it lives in the same dir as cbench.sh
+# Helper script to run WCBench tests in a loop, used for testing
+# Script assumes it lives in the same dir as wcbench.sh
 
 # Exit codes
 EX_USAGE=64
@@ -12,13 +12,13 @@ usage()
     cat << EOF
 Usage $0 [options]
 
-Run CBench against OpenDaylight in a loop.
+Run WCBench against OpenDaylight in a loop.
 
 OPTIONS:
     -h Show this help message
-    -l Loop CBench runs without restarting ODL
-    -r Loop CBench runs, restart ODL between runs
-    -t <time> Run CBench for a given number of minutes
+    -l Loop WCBench runs without restarting ODL
+    -r Loop WCBench runs, restart ODL between runs
+    -t <time> Run WCBench for a given number of minutes
     -p <processors> Pin ODL to given number of processors
 EOF
 }
@@ -39,22 +39,22 @@ start_odl()
 
 run_cbench()
 {
-    # Run CBench against ODL, optionally passing a CBench run time
+    # Run WCBench against ODL, optionally passing a WCBench run time
     if [ -z $run_time ]; then
-        # Flag means run CBench
-        echo "Running CBench, not passing run time info"
+        # Flag means run WCBench
+        echo "Running WCBench, not passing run time info"
         ./cbench.sh -r
     else
-        # Flags mean use $run_time CBench runs, run CBench
-        echo "Running CBench with $run_time minute(s) run time"
+        # Flags mean use $run_time WCBench runs, run WCBench
+        echo "Running WCBench with $run_time minute(s) run time"
         ./cbench.sh -t $run_time -r
     fi
 }
 
 loop_no_restart()
 {
-    # Repeatedly run CBench against ODL without restarting ODL
-    echo "Looping CBench against ODL without restarting ODL"
+    # Repeatedly run WCBench against ODL without restarting ODL
+    echo "Looping WCBench against ODL without restarting ODL"
     while :; do
         start_odl
         run_cbench
@@ -63,8 +63,8 @@ loop_no_restart()
 
 loop_with_restart()
 {
-    # Repeatedly run CBench against ODL, restart ODL between runs 
-    echo "Looping CBench against ODL, restarting ODL each run"
+    # Repeatedly run WCBench against ODL, restart ODL between runs 
+    echo "Looping WCBench against ODL, restarting ODL each run"
     while :; do
         start_odl
         run_cbench
@@ -87,7 +87,7 @@ while getopts ":hlp:rt:" opt; do
             exit $EX_OK
             ;;
         l)
-            # Loop without restarting ODL between CBench runs
+            # Loop without restarting ODL between WCBench runs
             loop_no_restart
             ;;
         p)
@@ -100,11 +100,11 @@ while getopts ":hlp:rt:" opt; do
             fi
             ;;
         r)
-            # Restart ODL between each CBench run
+            # Restart ODL between each WCBench run
             loop_with_restart
             ;;
         t)
-            # Set length of CBench run in minutes
+            # Set length of WCBench run in minutes
             run_time=${OPTARG}
             ;;
         *)
