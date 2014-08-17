@@ -34,13 +34,13 @@ OPTIONS:
 ```
 Usage ./loop_wcbench.sh [options]
 
-Run CBench against OpenDaylight in a loop.
+Run WCBench against OpenDaylight in a loop.
 
 OPTIONS:
     -h Show this help message
-    -l Loop CBench runs without restarting ODL
-    -r Loop CBench runs, restart ODL between runs
-    -t <time> Run CBench for a given number of minutes
+    -l Loop WCBench runs without restarting ODL
+    -r Loop WCBench runs, restart ODL between runs
+    -t <time> Run WCBench for a given number of minutes
     -p <processors> Pin ODL to given number of processors
 ```
 
@@ -83,18 +83,21 @@ Host cbench
 As you likely know, `ssh-copy-id` can help you setup your system to connect with the remote box via public key crypto. If you don't have keys setup for public key crypto, Google for guides (very out of scope). Finally, note that the `SSH_HOSTNAME` var in `wcbench.sh` must be set to the exact same value given on the `Host` line above.
 * Trivially installing/configuring ODL from the last successful build (via an Integration team Jenkins job).
 * Pinning the OpenDaylight process to a given number of CPU cores. This is useful for ensuring that ODL is properly pegged, working as hard as it can with given resource limits. It can also expose bad ODL behavior that comes about when the process is pegged.
-* Running OpenDaylight and issuing all of the required configuration.
-* Stopping the OpenDaylight process.
-* Cleaning up everything change by the `wcbench.sh` script, including deleting ODL and CBench source and binaries.
+* Running OpenDaylight and issuing all of the required configuration. Note that the `ODL_STARTUP_DELAY` variable in `wcbench.sh` might need some attention when running on a new system. If ODL takes longer than this value (in seconds) to start, `wcbench.sh` will attempt to issue the required configuration via telnet to the OSGi console before ODL can accept the configuration changes. This will result in fairly obvious error messages dumped to stdout. If you see these, increase the `ODL_STARTUP_DELAY` time. Alternatively, you can manually issue the required configuration after ODL starts by connecting to the OSGi console via telnet and issuing `dropAllPacketsRpc on`. See the `issue_odl_config` function in `wcbench.sh` for more info. Note that there's an open issue to make this config process more robust ([Issue #6](issue_odl_config)). Community contributions solicited!
+* Stopping the OpenDaylight process. This is done cleanly via the `run.sh` script, not `kill` or `pkill`.
+* Cleaning up everything changed by the `wcbench.sh` script, including deleting ODL and CBench sources and binaries.
 
 
 #### Usage Details: loop_wcbench.sh
 
-The `loop_wcbench.sh` script is a fairly simple wrapper around `wcbench.sh` ("I hear you like wrappers, so I wrapped your wrapper in a wrapper"). Its reason for existing is to enable long series of repeated WCBench runs. As described in the [WCBench Results] section, these results will be stored in a CSV file and can be analyzed with `stats.py`, as described in the [Usage Details: stats.py] section. Doing many WCBench runs allows trends over time to be observed (like decreasing perf or increasing RAM). More results can also yield more representative stats.
+The `loop_wcbench.sh` script is a fairly simple wrapper around `wcbench.sh` ("I hear you like wrappers, so I wrapped your wrapper in a wrapper"). Its reason for existing is to enable long series of repeated WCBench runs. As described in the [WCBench Results](https://github.com/dfarrell07/cbench_regression#wcbench-results) section, these results will be stored in a CSV file and can be analyzed with `stats.py`, as described in the [Usage Details: stats.py](https://github.com/dfarrell07/cbench_regression#usage-details-statspy) section. Doing many WCBench runs allows trends over time to be observed (like decreasing perf or increasing RAM). More results can also yield more representative stats.
 
 In more detail, the `loop_wcbench.sh` script supports:
 
-* TODO
+* Repeatedly running WCBench against ODL without restarting ODL between runs. This test revealed the perf degradation over time described in [bug 1395](https://bugs.opendaylight.org/show_bug.cgi?id=1395).
+* Repeatedly running WCBench against ODL, restarting ODL between runs. This acted as a control when finding [bug 1395](https://bugs.opendaylight.org/show_bug.cgi?id=1395), as restarting ODL runs mitigated perf decreases. 
+* Pass run length info to WCBench, causing WCBench runs to last for the given number of minutes. Note that longer runs seem to result in lower standard deviation flows/sec results.
+* Pin ODL to a given number of processors. This is basically a thin hand-off to `wcbench.sh`. As mentioned above, pinning ODL allows it to be testing while the process is properly pegged.
 
 #### Usage Details: stats.py
 
