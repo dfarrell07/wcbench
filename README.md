@@ -125,7 +125,7 @@ Examples are useful:
 
 Graph results:
 
-TODO: Insert graph
+![Graphs of flows/sec and used RAM against run number](https://cloud.githubusercontent.com/assets/880273/3562723/5b854538-0a02-11e4-8fb1-dd1544d20ae6.png)
 
 
 ### WCBench Results
