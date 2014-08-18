@@ -157,3 +157,196 @@ The data collected by WCBench and stored in the results file for each run includ
 * The name of the controller under test
 * The iowait value at the start of the test on the system running ODL
 * The iowait value at the end of the test on the system running ODL
+
+## Detailed Walkthrough
+
+This walkthrough describes how to setup a system for WCBench testing, starting with a totally fresh [Fedora 20 Cloud](http://fedoraproject.org/get-fedora#clouds) install. I'm going to leave out the VM creation details for the sake of space. As long as you can SSH into the machine and it has access to the Internet, all of the following should work as-is. Note that this process has also been tested on CentOS 6.5 (so obviously should work on RHEL).
+
+I suggest starting by adding the WCBench VM to your `~/.ssh/config` file, to allow quick access without having to remember details.
+
+```
+[~]$ vim .ssh/config
+```
+
+Add something like the following:
+
+```
+Host wcbench
+    Hostname 10.3.9.110
+    User fedora
+    IdentityFile /home/daniel/.ssh/id_rsa_nopass
+    StrictHostKeyChecking no
+```
+
+You can now SSH into your fresh VM:
+
+```
+[~]$ ssh wcbench
+Warning: Permanently added '10.3.9.110' (RSA) to the list of known hosts.
+[fedora@dfarrell-wcbench ~]$ 
+```
+
+You'll need a utility like screen or tmux, so you can start long-running tests, log out of the system and leave them running. My Linux configurations are very scripted, so here's how I install tmux and its configuration file. You're welcome to copy this.
+
+From my local system:
+
+```
+[~]$ rsync ~/.dotfiles/linux_setup.sh wcbench:/home/fedora
+```
+
+That `linux_setup.sh` script can be found [here](https://github.com/dfarrell07/dotfiles/blob/master/linux_setup.sh).
+
+Back on the remote VM:
+
+```
+[fedora@dfarrell-wcbench ~]$ sudo yum update -y; ./linux_setup.sh -t
+```
+
+Go get some coffee, this will take a while.
+
+Once your VM is updated and tmux is installed, drop into a tmux session.
+
+```
+[fedora@dfarrell-wcbench ~]$ tmux new
+```
+
+For the sake of simplicity, I'm going to do an HTTPS clone of the WCBench repo. You may want to setup your SSH info on the VM and clone via SSH if you're going to be contributing (which is encouraged!).
+
+NB: Git was installed for me during the `./linux_setup.sh -t` step, as that cloned my [.dotfiles repo](https://github.com/dfarrell07/dotfiles/). If you don't have git, install it with `sudo yum install git -y`.
+
+```
+[fedora@dfarrell-wcbench ~]$ git clone https://github.com/dfarrell07/wcbench.git
+[fedora@dfarrell-wcbench ~]$ ls -rc
+linux_setup.sh  wcbench
+[fedora@dfarrell-wcbench ~]$ cd wcbench/
+```
+
+Huzzah! You now have WCBench "installed" on your VM. Now, to install CBench and OpenDaylight.
+
+```
+[fedora@dfarrell-wcbench wcbench]$ ./wcbench.sh -ci
+CBench is not installed
+Installing CBench dependencies
+Cloning CBench repo
+Cloning openflow source code
+Building oflops/configure file
+Building CBench
+CBench is installed
+Successfully installed CBench
+Installing OpenDaylight dependencies
+Downloading last successful ODL build
+Unzipping last successful ODL build
+Downloading openflowplugin
+Removing simpleforwarding plugin
+Removing arphandler plugin
+```
+
+Huzzah! You now have CBench and OpenDaylight installed/configured.
+
+You're ready to get started using WCBench. You can start ODL like this:
+
+```
+[fedora@dfarrell-wcbench wcbench]$ ./wcbench.sh -o
+Starting OpenDaylight
+Giving ODL 90 seconds to get up and running
+80 seconds remaining
+70 seconds remaining
+60 seconds remaining
+50 seconds remaining
+40 seconds remaining
+30 seconds remaining
+20 seconds remaining
+10 seconds remaining
+0 seconds remaining
+Installing telnet, as it's required for issuing ODL config.
+Issuing `dropAllPacketsRpc on` command via telnet to localhost:2400
+Trying ::1...
+Connected to localhost.
+Escape character is '^]'.
+osgi> dropAllPacketsRpc on
+DropAllFlows transitions to on
+osgi> Connection closed by foreign host.
+```
+
+Here's an example of running a two minute CBench test against OpenDaylight:
+
+ench wcbench]$ ./wcbench.sh -t 2 -r
+Set MS_PER_TEST to 120000, TESTS_PER_SWITCH to 1, CBENCH_WARMUP to 0
+Collecting pre-test stats
+Running CBench against ODL on localhost:6633
+Collecting post-test stats
+Collecting time-irrelevant stats
+Average responses/second: 22384.52
+/home/fedora/results.csv not found or empty, building fresh one
+```
+
+I suggest copying your results.csv file back to your local system for analysis, especially if you want to generate graphs. From my local system:
+
+```
+[~/wcbench]$ rsync wcbench:/home/fedora/results.csv .
+```
+
+You can now run `stats.py` against it:
+
+```
+[~/wcbench]$ ./stats.py -S
+{'fifteen_load': {'max': 0,
+                  'mean': 0.62,
+                  'min': 0,
+                  'relstddev': 0.0,
+                  'stddev': 0.0},
+ 'five_load': {'max': 0,
+               'mean': 0.96,
+               'min': 0,
+               'relstddev': 0.0,
+               'stddev': 0.0},
+ 'flows': {'max': 22384,
+           'mean': 22384.52,
+           'min': 22384,
+           'relstddev': 0.0,
+           'stddev': 0.0},
+ 'iowait': {'max': 0, 'mean': 0.0, 'min': 0, 'relstddev': 0.0, 'stddev': 0.0},
+ 'one_load': {'max': 0,
+              'mean': 0.85,
+              'min': 0,
+              'relstddev': 0.0,
+              'stddev': 0.0},
+ 'runtime': {'max': 120,
+             'mean': 120.0,
+             'min': 120,
+             'relstddev': 0.0,
+             'stddev': 0.0},
+ 'sample_size': 1,
+ 'steal_time': {'max': 0,
+                'mean': 0.0,
+                'min': 0,
+                'relstddev': 0.0,
+                'stddev': 0.0},
+ 'used_ram': {'max': 3657,
+              'mean': 3657.0,
+              'min': 3657,
+              'relstddev': 0.0,
+              'stddev': 0.0}}
+```
+
+If you'd like to collect some serious long-term data, use the `loop_wcbench.sh` script (of course, back on the VM).
+
+```
+[fedora@dfarrell-wcbench wcbench]$ ./loop_wcbench.sh -t 2 -r
+# I'm not going to let this run, you get the idea
+```
+
+You can then disconnect from your tmux session with `ctrl + a + d`, or `ctrl + b + d` if you're using the standard `~/.tmux.conf`. Let this loop run for a few days, then run lots of `stats.py` commands against it to see all kinds of cool stuff.
+
+Once you're done, you can stop ODL and clean up the CBench and ODL source/binaries.
+
+```
+[fedora@dfarrell-wcbench wcbench]$ ./wcbench.sh -k
+Stopping OpenDaylight
+[fedora@dfarrell-wcbench wcbench]$ ./wcbench.sh -d
+Removing /home/fedora/opendaylight
+Removing /home/fedora/distributions-base-0.2.0-SNAPSHOT-osgipackage.zip
+Removing /home/fedora/openflow
+Removing /home/fedora/oflops
+Removing /usr/local/bin/cbench
+```
