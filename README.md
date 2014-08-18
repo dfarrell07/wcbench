@@ -270,7 +270,8 @@ osgi> Connection closed by foreign host.
 
 Here's an example of running a two minute CBench test against OpenDaylight:
 
-ench wcbench]$ ./wcbench.sh -t 2 -r
+```
+[fedora@dfarrell-wcbench wcbench]$ ./wcbench.sh -t 2 -r
 Set MS_PER_TEST to 120000, TESTS_PER_SWITCH to 1, CBENCH_WARMUP to 0
 Collecting pre-test stats
 Running CBench against ODL on localhost:6633
