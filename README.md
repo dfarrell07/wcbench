@@ -350,3 +350,17 @@ Removing /home/fedora/openflow
 Removing /home/fedora/oflops
 Removing /usr/local/bin/cbench
 ```
+
+## Contributing
+
+Contributions are encuraged! Contributions are encuraged! Contributions are encuraged! <- I can't say this enough.
+
+The best way to contribute code is to jump on an existing [GitHub Issue](https://github.com/dfarrell07/wcbench/issues) or raise your own, then fork the code, make your changes and submit a pull request to merge your changes back into the main codebase.
+
+Bugs or feature requestions should be raised as [Issues](https://github.com/dfarrell07/wcbench/issues).
+
+## Contact
+
+As mentioned above, for bugs/features, please raise an [Issue](https://github.com/dfarrell07/wcbench/issues) on the project's GitHub page.
+
+Daniel Farrell is the main developer of WCBench. You can contact him directly at dfarrell@redhat.com or dfarrell07@gmail.com. He also hands out on IRC at Freenode/#opendaylight most of the time he's awake.
