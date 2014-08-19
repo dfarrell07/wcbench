@@ -372,6 +372,8 @@ The best way to contribute code is to jump on an existing [GitHub Issue](https:/
 
 Bugs or feature requests should be raised as [Issues](https://github.com/dfarrell07/wcbench/issues).
 
+Note that the code is Open Source under a BSD 2-clause license.
+
 ### Contact
 
 As mentioned in the [Contributing section](https://github.com/dfarrell07/wcbench/blob/master/README.md#contributing), for bugs/features, please raise an [Issue](https://github.com/dfarrell07/wcbench/issues) on the WCBench GitHub page.
