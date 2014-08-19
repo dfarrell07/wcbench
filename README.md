@@ -358,10 +358,10 @@ Contributions are encuraged! Contributions are encuraged! Contributions are encu
 
 The best way to contribute code is to jump on an existing [GitHub Issue](https://github.com/dfarrell07/wcbench/issues) or raise your own, then fork the code, make your changes and submit a pull request to merge your changes back into the main codebase.
 
-Bugs or feature requestions should be raised as [Issues](https://github.com/dfarrell07/wcbench/issues).
+Bugs or feature requests should be raised as [Issues](https://github.com/dfarrell07/wcbench/issues).
 
 ## Contact
 
-As mentioned above, for bugs/features, please raise an [Issue](https://github.com/dfarrell07/wcbench/issues) on the project's GitHub page.
+As mentioned in the [Contributing section](https://github.com/dfarrell07/wcbench/blob/master/README.md#contributing), for bugs/features, please raise an [Issue](https://github.com/dfarrell07/wcbench/issues) on the WCBench GitHub page.
 
-Daniel Farrell is the main developer of WCBench. You can contact him directly at dfarrell@redhat.com or dfarrell07@gmail.com. He also hands out on IRC at Freenode/#opendaylight most of the time he's awake.
+Daniel Farrell is the main developer of WCBench. You can contact him directly at dfarrell@redhat.com or dfarrell07@gmail.com. He also hangs out on IRC at Freenode/#opendaylight most of his waking hours.
