@@ -2,6 +2,18 @@
 
 CBench, wrapped in stuff that makes it useful.
 
+- [Wrapped CBench (WCBench)](#user-content-wrapped-cbench-wcbench)
+    - [Overview](#user-content-overview)
+    - [Usage](#user-content-usage)
+        - [Usage Overview](#user-content-usage-overview)
+        - [Usage Details: wcbench.sh](#user-content-usage-details-wcbenchsh)
+        - [Usage Details: loop_wcbench.sh](#user-content-usage-details-loop_wcbenchsh)
+        - [Usage Details: stats.py](#user-content-usage-details-statspy)
+    - [WCBench Results](#user-content-wcbench-results)
+    - [Detailed Walkthrough](#user-content-detailed-walkthrough)
+    - [Contributing](#user-content-contributing)
+    - [Contact](#user-content-contact)
+
 ### Overview
 
 CBench is a somewhat classic SDN controller benchmark tool. It blasts a controller with OpenFlow packet-in messages and counts the rate of flow mod messages returned. WCBench consumes CBench as a library, then builds a robust test automation, stats collection and stats analysis/graphing system around it.
