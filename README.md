@@ -158,7 +158,7 @@ The data collected by WCBench and stored in the results file for each run includ
 * The iowait value at the start of the test on the system running ODL
 * The iowait value at the end of the test on the system running ODL
 
-## Detailed Walkthrough
+### Detailed Walkthrough
 
 This walkthrough describes how to setup a system for WCBench testing, starting with a totally fresh [Fedora 20 Cloud](http://fedoraproject.org/get-fedora#clouds) install. I'm going to leave out the VM creation details for the sake of space. As long as you can SSH into the machine and it has access to the Internet, all of the following should work as-is. Note that this process has also been tested on CentOS 6.5 (so obviously should work on RHEL).
 
@@ -352,7 +352,7 @@ Removing /home/fedora/oflops
 Removing /usr/local/bin/cbench
 ```
 
-## Contributing
+### Contributing
 
 Contributions are encuraged! Contributions are encuraged! Contributions are encuraged! <- I can't say this enough.
 
@@ -360,7 +360,7 @@ The best way to contribute code is to jump on an existing [GitHub Issue](https:/
 
 Bugs or feature requests should be raised as [Issues](https://github.com/dfarrell07/wcbench/issues).
 
-## Contact
+### Contact
 
 As mentioned in the [Contributing section](https://github.com/dfarrell07/wcbench/blob/master/README.md#contributing), for bugs/features, please raise an [Issue](https://github.com/dfarrell07/wcbench/issues) on the WCBench GitHub page.
 
