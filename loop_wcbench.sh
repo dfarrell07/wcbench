@@ -6,9 +6,17 @@
 EX_USAGE=64
 EX_OK=0
 
+###############################################################################
+# Prints usage message
+# Globals:
+#   None
+# Arguments:
+#   None
+# Returns:
+#   None
+###############################################################################
 usage()
 {
-    # Print usage message
     cat << EOF
 Usage $0 [options]
 
@@ -23,9 +31,17 @@ OPTIONS:
 EOF
 }
 
+###############################################################################
+# Starts ODL, optionally pinning it to a given number of processors
+# Globals:
+#   processors
+# Arguments:
+#   None
+# Returns:
+#   WCBench exit status
+###############################################################################
 start_odl()
 {
-    # Starts ODL, optionally pinning it to a given number of processors
     if [ -z $processors ]; then
         # Start ODL, don't pass processor info
         echo "Starting ODL, not passing processor info"
@@ -37,9 +53,17 @@ start_odl()
     fi
 }
 
+###############################################################################
+# Run WCBench against ODL, optionally passing a WCBench run time
+# Globals:
+#   run_time
+# Arguments:
+#   None
+# Returns:
+#   WCBench exit status
+###############################################################################
 run_wcbench()
 {
-    # Run WCBench against ODL, optionally passing a WCBench run time
     if [ -z $run_time ]; then
         # Flag means run WCBench
         echo "Running WCBench, not passing run time info"
@@ -51,9 +75,17 @@ run_wcbench()
     fi
 }
 
+###############################################################################
+# Repeatedly run WCBench against ODL without restarting ODL
+# Globals:
+#   None
+# Arguments:
+#   None
+# Returns:
+#   Exit status of run_wcbench
+###############################################################################
 loop_no_restart()
 {
-    # Repeatedly run WCBench against ODL without restarting ODL
     echo "Looping WCBench against ODL without restarting ODL"
     while :; do
         start_odl
@@ -61,9 +93,17 @@ loop_no_restart()
     done
 }
 
+###############################################################################
+# Repeatedly run WCBench against ODL, restart ODL between runs
+# Globals:
+#   None
+# Arguments:
+#   None
+# Returns:
+#   WCBench exit status
+###############################################################################
 loop_with_restart()
 {
-    # Repeatedly run WCBench against ODL, restart ODL between runs 
     echo "Looping WCBench against ODL, restarting ODL each run"
     while :; do
         start_odl
@@ -79,6 +119,7 @@ if [ $# -eq 0 ]; then
     exit $EX_USAGE
 fi
 
+# Parse options given from command line
 while getopts ":hlp:rt:" opt; do
     case "$opt" in
         h)
@@ -108,6 +149,7 @@ while getopts ":hlp:rt:" opt; do
             run_time=${OPTARG}
             ;;
         *)
+            # Print usage message
             usage
             exit $EX_USAGE
     esac
