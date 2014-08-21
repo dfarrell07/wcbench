@@ -36,9 +36,9 @@ OPTIONS:
     -c Install CBench
     -t <time> Run CBench for given number of minutes
     -r Run CBench against OpenDaylight
-    -i Install ODL from last sucessful build
+    -i Install ODL from last successful build
     -p <processors> Pin ODL to given number of processors
-    -o Run ODL from last sucessful build
+    -o Run ODL from last successful build
     -k Kill OpenDaylight
     -d Delete local ODL and CBench code
 ```
