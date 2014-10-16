@@ -18,7 +18,7 @@ EX_OK=0
 EX_ERR=1
 
 # Params for CBench test and ODL config
-NUM_SWITCHES=256
+NUM_SWITCHES=512
 NUM_MACS=100000
 TESTS_PER_SWITCH=10  # Comment out to speed up testing of this script
 #TESTS_PER_SWITCH=2  # ^^Then uncomment this one
@@ -82,6 +82,7 @@ ODL_ZIP_PATH=$BASE_DIR/$ODL_ZIP
 PLUGIN_DIR=$ODL_DIR/plugins
 RESULTS_FILE=$BASE_DIR/"results.csv"
 CBENCH_LOG=$BASE_DIR/"cbench.log"
+CBENCH_LOG_CSV=$BASE_DIR/"cbench_log.csv"
 CBENCH_BIN="/usr/local/bin/cbench"
 
 usage()
@@ -298,6 +299,10 @@ run_cbench()
         echo "WARNING: Rare error occurred: failed to parse avg. See $CBENCH_LOG." >&2
         echo "Run $(next_run_num) failed to record a CBench average. CBench details:" >> $CBENCH_LOG
         echo "$cbench_output" >> $CBENCH_LOG
+
+        # Record msgbuf err val (0 or -1) and run num in CSV format for stats
+        msgbuf_err=`echo $cbench_output | grep msgbuf | awk '{print $4}' | tr -d :`
+        echo "$(next_run_num),$msgbuf_err" >> $CBENCH_LOG_CSV
         return
     else
         echo "Min responses/second: $cbench_min"

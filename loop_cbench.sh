@@ -14,6 +14,9 @@ Usage $0 [options]
 
 Run CBench against OpenDaylight in a loop.
 
+Note that the -p/-t option must be given before -l/-r options,
+as -l/-r will loop forever, preventing -p/-t from being read.
+
 OPTIONS:
     -h Show this help message
     -l Loop CBench runs without restarting ODL
