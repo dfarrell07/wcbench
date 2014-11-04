@@ -14,6 +14,9 @@ EX_NOT_FOUND=65
 EX_OK=0
 EX_ERR=1
 
+# Output verbose debug info (true) or not (anything else)
+VERBOSE=false
+
 # Params for CBench test and ODL config
 NUM_SWITCHES=256  # Default number of switches for CBench to simulate
 NUM_MACS=100000  # Default number of MACs for CBench to use
@@ -154,27 +157,49 @@ install_cbench()
 
     # Install required packages
     echo "Installing CBench dependencies"
-    sudo yum install -y net-snmp-devel libpcap-devel autoconf make automake libtool libconfig-devel git &> /dev/null
+    if "$VERBOSE" = true; then
+        sudo yum install -y net-snmp-devel libpcap-devel autoconf make automake libtool libconfig-devel git
+    else
+        sudo yum install -y net-snmp-devel libpcap-devel autoconf make automake libtool libconfig-devel git &> /dev/null
+    fi
 
     # Clone repo that contains CBench
-    echo "Cloning CBench repo"
-    git clone https://github.com/andi-bigswitch/oflops.git $OFLOPS_DIR &> /dev/null
+    echo "Cloning CBench repo into $OFLOPS_DIR"
+    if "$VERBOSE" = true; then
+        git clone https://github.com/andi-bigswitch/oflops.git $OFLOPS_DIR
+    else
+        git clone https://github.com/andi-bigswitch/oflops.git $OFLOPS_DIR &> /dev/null
+    fi
 
     # CBench requires the OpenFlow source code, clone it
-    echo "Cloning openflow source code"
-    git clone git://gitosis.stanford.edu/openflow.git $OF_DIR &> /dev/null
+    echo "Cloning openflow source code into $OF_DIR"
+    if "$VERBOSE" = true; then
+        git clone git://gitosis.stanford.edu/openflow.git $OF_DIR
+    else
+        git clone git://gitosis.stanford.edu/openflow.git $OF_DIR &> /dev/null
+    fi
 
     # Build the oflops/configure file
     old_cwd=$PWD
     cd $OFLOPS_DIR
     echo "Building oflops/configure file"
-    ./boot.sh &> /dev/null
+    if "$VERBOSE" = true; then
+        ./boot.sh
+    else
+        ./boot.sh &> /dev/null
+    fi
 
     # Build oflops
     echo "Building CBench"
-    ./configure --with-openflow-src-dir=$OF_DIR &> /dev/null
-    make &> /dev/null
-    sudo make install &> /dev/null
+    if "$VERBOSE" = true; then
+        ./configure --with-openflow-src-dir=$OF_DIR
+        make
+        sudo make install
+    else
+        ./configure --with-openflow-src-dir=$OF_DIR &> /dev/null
+        make &> /dev/null
+        sudo make install &> /dev/null
+    fi
     cd $old_cwd
 
     # Validate that the install worked
@@ -404,7 +429,11 @@ run_cbench()
 {
     get_pre_test_stats
     echo "Running CBench against ODL on $CONTROLLER_IP:$CONTROLLER_PORT"
-    cbench_output=`cbench -c $CONTROLLER_IP -p $CONTROLLER_PORT -m $MS_PER_TEST -l $TESTS_PER_SWITCH -s $NUM_SWITCHES -M $NUM_MACS -w $CBENCH_WARMUP 2>&1`
+    if "$VERBOSE" = true; then
+        cbench_output=`cbench -c $CONTROLLER_IP -p $CONTROLLER_PORT -m $MS_PER_TEST -l $TESTS_PER_SWITCH -s $NUM_SWITCHES -M $NUM_MACS -w $CBENCH_WARMUP`
+    else
+        cbench_output=`cbench -c $CONTROLLER_IP -p $CONTROLLER_PORT -m $MS_PER_TEST -l $TESTS_PER_SWITCH -s $NUM_SWITCHES -M $NUM_MACS -w $CBENCH_WARMUP` &> /dev/null
+    fi
     get_post_test_stats
     get_time_irrelevant_stats
 
@@ -467,21 +496,37 @@ install_opendaylight()
 
     # Install required packages
     echo "Installing OpenDaylight dependencies"
-    sudo yum install -y java-1.7.0-openjdk unzip wget &> /dev/null
+    if "$VERBOSE" = true; then
+        sudo yum install -y java-1.7.0-openjdk unzip wget
+    else
+        sudo yum install -y java-1.7.0-openjdk unzip wget &> /dev/null
+    fi
 
     # Grab last successful build
     echo "Downloading last successful ODL build"
-    wget -P $BASE_DIR "https://jenkins.opendaylight.org/integration/job/integration-master-project-centralized-integration/lastSuccessfulBuild/artifact/distributions/base/target/$ODL_ZIP" &> /dev/null
+    if "$VERBOSE" = true; then
+        wget -P $BASE_DIR "https://jenkins.opendaylight.org/integration/job/integration-master-project-centralized-integration/lastSuccessfulBuild/artifact/distributions/base/target/$ODL_ZIP"
+    else
+        wget -P $BASE_DIR "https://jenkins.opendaylight.org/integration/job/integration-master-project-centralized-integration/lastSuccessfulBuild/artifact/distributions/base/target/$ODL_ZIP" &> /dev/null
+    fi
     if [ ! -f $ODL_ZIP_PATH ]; then
         echo "WARNING: Failed to dl ODL. Version bumped? If so, update \$ODL_ZIP" >&2
         return $EX_ERR
     fi
     echo "Unzipping last successful ODL build"
-    unzip -d $BASE_DIR $ODL_ZIP_PATH &> /dev/null
+    if "$VERBOSE" = true; then
+        unzip -d $BASE_DIR $ODL_ZIP_PATH
+    else
+        unzip -d $BASE_DIR $ODL_ZIP_PATH &> /dev/null
+    fi
 
     # Make some plugin changes that are apparently required for CBench
     echo "Downloading openflowplugin"
-    wget -P $PLUGIN_DIR 'https://jenkins.opendaylight.org/openflowplugin/job/openflowplugin-merge/lastSuccessfulBuild/org.opendaylight.openflowplugin$drop-test/artifact/org.opendaylight.openflowplugin/drop-test/0.0.3-SNAPSHOT/drop-test-0.0.3-SNAPSHOT.jar' &> /dev/null
+    if "$VERBOSE" = true; then
+        wget -P $PLUGIN_DIR 'https://jenkins.opendaylight.org/openflowplugin/job/openflowplugin-merge/lastSuccessfulBuild/org.opendaylight.openflowplugin$drop-test/artifact/org.opendaylight.openflowplugin/drop-test/0.0.3-SNAPSHOT/drop-test-0.0.3-SNAPSHOT.jar'
+    else
+        wget -P $PLUGIN_DIR 'https://jenkins.opendaylight.org/openflowplugin/job/openflowplugin-merge/lastSuccessfulBuild/org.opendaylight.openflowplugin$drop-test/artifact/org.opendaylight.openflowplugin/drop-test/0.0.3-SNAPSHOT/drop-test-0.0.3-SNAPSHOT.jar' &> /dev/null
+    fi
     echo "Removing simpleforwarding plugin"
     rm $PLUGIN_DIR/org.opendaylight.controller.samples.simpleforwarding-0.4.2-SNAPSHOT.jar
     echo "Removing arphandler plugin"
@@ -524,7 +569,11 @@ odl_started()
 {
     old_cwd=$PWD
     cd $ODL_DIR
-    ./run.sh -status &> /dev/null
+    if "$VERBOSE" = true; then
+        ./run.sh -status
+    else
+        ./run.sh -status &> /dev/null
+    fi
     if [ $? = 0 ]; then
         return $EX_OK
     else
@@ -558,15 +607,23 @@ start_opendaylight()
     else
         echo "Starting OpenDaylight"
         if [ -z $processors ]; then
-            ./run.sh -start $OSGI_PORT -of13 -Xms1g -Xmx4g &> /dev/null
+            if "$VERBOSE" = true; then
+                ./run.sh -start $OSGI_PORT -of13 -Xms1g -Xmx4g
+            else
+                ./run.sh -start $OSGI_PORT -of13 -Xms1g -Xmx4g &> /dev/null
+            fi
         else
             echo "Pinning ODL to $processors processor(s)"
             if [ $processors == 1 ]; then
-                echo "Increasing ODL start time, as 1 processor will slow it down"
+                echo "Increasing ODL start time to 120s, as 1 processor will slow it down"
                 ODL_STARTUP_DELAY=120
             fi
             # Use taskset to pin ODL to a given number of processors
-            taskset -c 0-$(expr $processors - 1) ./run.sh -start $OSGI_PORT -of13 -Xms1g -Xmx4g &> /dev/null
+            if "$VERBOSE" = true; then
+                taskset -c 0-$(expr $processors - 1) ./run.sh -start $OSGI_PORT -of13 -Xms1g -Xmx4g
+            else
+                taskset -c 0-$(expr $processors - 1) ./run.sh -start $OSGI_PORT -of13 -Xms1g -Xmx4g &> /dev/null
+            fi
         fi
     fi
     cd $old_cwd
@@ -597,7 +654,11 @@ issue_odl_config()
 {
     if ! command -v telnet &> /dev/null; then
         echo "Installing telnet, as it's required for issuing ODL config."
-        sudo yum install -y telnet &> /dev/null
+        if "$VERBOSE" = true; then
+            sudo yum install -y telnet
+        else
+            sudo yum install -y telnet &> /dev/null
+        fi
     fi
     echo "Issuing \`dropAllPacketsRpc on\` command via telnet to localhost:$OSGI_PORT"
     # NB: Not using sleeps results in silent failures (cmd has no effect)
@@ -619,7 +680,11 @@ stop_opendaylight()
     cd $ODL_DIR
     if odl_started; then
         echo "Stopping OpenDaylight"
-        ./run.sh -stop &> /dev/null
+        if "$VERBOSE" = true; then
+            ./run.sh -stop
+        else
+            ./run.sh -stop &> /dev/null
+        fi
     else
         echo "OpenDaylight isn't running"
     fi
