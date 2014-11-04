@@ -37,8 +37,8 @@ SSH_HOSTNAME="cbenchc"  # You'll need to update this to reflect ~/.ssh/config
 BASE_DIR=$HOME  # Directory that code and such is dropped into
 OF_DIR=$BASE_DIR/openflow  # Directory that contains OpenFlow code
 OFLOPS_DIR=$BASE_DIR/oflops  # Directory that contains oflops repo
-ODL_DIR=$BASE_DIR/opendaylight  # Directory with ODL code
-ODL_ZIP="distributions-base-0.2.0-SNAPSHOT-osgipackage.zip"  # ODL zip name
+ODL_DIR=$BASE_DIR/distribution-karaf-0.2.0-Helium  # Directory with ODL code
+ODL_ZIP="distribution-karaf-0.2.0-Helium.zip"  # ODL zip name
 ODL_ZIP_PATH=$BASE_DIR/$ODL_ZIP  # Full path to ODL zip
 PLUGIN_DIR=$ODL_DIR/plugins  # ODL plugin directory
 RESULTS_FILE=$BASE_DIR/"results.csv"  # File that results are stored in
@@ -505,9 +505,9 @@ install_opendaylight()
     # Grab last successful build
     echo "Downloading last successful ODL build"
     if "$VERBOSE" = true; then
-        wget -P $BASE_DIR "https://jenkins.opendaylight.org/integration/job/integration-master-project-centralized-integration/lastSuccessfulBuild/artifact/distributions/base/target/$ODL_ZIP"
+        wget -P $BASE_DIR "http://nexus.opendaylight.org/content/groups/public/org/opendaylight/integration/distribution-karaf/0.2.0-Helium/$ODL_ZIP"
     else
-        wget -P $BASE_DIR "https://jenkins.opendaylight.org/integration/job/integration-master-project-centralized-integration/lastSuccessfulBuild/artifact/distributions/base/target/$ODL_ZIP" &> /dev/null
+        wget -P $BASE_DIR "http://nexus.opendaylight.org/content/groups/public/org/opendaylight/integration/distribution-karaf/0.2.0-Helium/$ODL_ZIP" &> /dev/null
     fi
     if [ ! -f $ODL_ZIP_PATH ]; then
         echo "WARNING: Failed to dl ODL. Version bumped? If so, update \$ODL_ZIP" >&2
@@ -520,17 +520,9 @@ install_opendaylight()
         unzip -d $BASE_DIR $ODL_ZIP_PATH &> /dev/null
     fi
 
-    # Make some plugin changes that are apparently required for CBench
-    echo "Downloading openflowplugin"
-    if "$VERBOSE" = true; then
-        wget -P $PLUGIN_DIR 'https://jenkins.opendaylight.org/openflowplugin/job/openflowplugin-merge/lastSuccessfulBuild/org.opendaylight.openflowplugin$drop-test/artifact/org.opendaylight.openflowplugin/drop-test/0.0.3-SNAPSHOT/drop-test-0.0.3-SNAPSHOT.jar'
-    else
-        wget -P $PLUGIN_DIR 'https://jenkins.opendaylight.org/openflowplugin/job/openflowplugin-merge/lastSuccessfulBuild/org.opendaylight.openflowplugin$drop-test/artifact/org.opendaylight.openflowplugin/drop-test/0.0.3-SNAPSHOT/drop-test-0.0.3-SNAPSHOT.jar' &> /dev/null
-    fi
-    echo "Removing simpleforwarding plugin"
-    rm $PLUGIN_DIR/org.opendaylight.controller.samples.simpleforwarding-0.4.2-SNAPSHOT.jar
-    echo "Removing arphandler plugin"
-    rm $PLUGIN_DIR/org.opendaylight.controller.arphandler-0.5.2-SNAPSHOT.jar
+    # TODO: Do all required Karaf config
+    echo "FIXME: Karaf config not yet built. See issue #36." >&2
+    return $EX_ERR
 
     # TODO: Change controller log level to ERROR. Confirm this is necessary.
     # Relevant Issue: https://github.com/dfarrell07/wcbench/issues/3
