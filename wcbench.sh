@@ -491,8 +491,11 @@ uninstall_odl()
 ###############################################################################
 install_opendaylight()
 {
-    # Remove old controller code
-    uninstall_odl
+    # Only remove unzipped code, as zip is large and unlikely to have changed.
+    if [ -d $ODL_DIR ]; then
+        echo "Removing $ODL_DIR"
+        rm -rf $ODL_DIR
+    fi
 
     # Install required packages
     echo "Installing OpenDaylight dependencies"
@@ -502,17 +505,26 @@ install_opendaylight()
         sudo yum install -y java-1.7.0-openjdk unzip wget &> /dev/null
     fi
 
-    # Grab last successful build
-    echo "Downloading last successful ODL build"
-    if "$VERBOSE" = true; then
-        wget -P $BASE_DIR "http://nexus.opendaylight.org/content/groups/public/org/opendaylight/integration/distribution-karaf/0.2.0-Helium/$ODL_ZIP"
+    # If we already have the zip archive, use that.
+    if [ -f $ODL_ZIP_PATH ]; then
+        echo "Using local $ODL_ZIP_PATH. Pass -d flag to remove."
     else
-        wget -P $BASE_DIR "http://nexus.opendaylight.org/content/groups/public/org/opendaylight/integration/distribution-karaf/0.2.0-Helium/$ODL_ZIP" &> /dev/null
+        # Grab last successful build
+        echo "Downloading last successful ODL build"
+        if "$VERBOSE" = true; then
+            wget -P $BASE_DIR "http://nexus.opendaylight.org/content/groups/public/org/opendaylight/integration/distribution-karaf/0.2.0-Helium/$ODL_ZIP"
+        else
+            wget -P $BASE_DIR "http://nexus.opendaylight.org/content/groups/public/org/opendaylight/integration/distribution-karaf/0.2.0-Helium/$ODL_ZIP" &> /dev/null
+        fi
     fi
+
+    # Confirm that download was successful
     if [ ! -f $ODL_ZIP_PATH ]; then
         echo "WARNING: Failed to dl ODL. Version bumped? If so, update \$ODL_ZIP" >&2
         return $EX_ERR
     fi
+
+    # Unzip ODL archive
     echo "Unzipping last successful ODL build"
     if "$VERBOSE" = true; then
         unzip -d $BASE_DIR $ODL_ZIP_PATH
@@ -520,7 +532,8 @@ install_opendaylight()
         unzip -d $BASE_DIR $ODL_ZIP_PATH &> /dev/null
     fi
 
-    # TODO: Do all required Karaf config
+    # TODO: Do all required Karaf config.
+    # Relevant Issue: https://github.com/dfarrell07/wcbench/issues/36
     echo "FIXME: Karaf config not yet built. See issue #36." >&2
     return $EX_ERR
 
