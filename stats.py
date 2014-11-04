@@ -22,7 +22,7 @@ class Stats(object):
     """
 
     results_file = "results.csv"
-    log_file = "cbench.log"
+    msgbuf_err_file = "cbench_log.csv"
     precision = 3
     run_index = 0
     flow_index = 1
@@ -36,6 +36,8 @@ class Stats(object):
     fifteen_load_index = 18
     start_iowait_index = 20
     end_iowait_index = 21
+    err_run_index = 0
+    err_val_index = 1
 
     def __init__(self):
         """Setup some flags and data structures, kick off build_cols call."""
@@ -44,7 +46,7 @@ class Stats(object):
         self.results["sample_size"] = len(self.run_col)
 
     def build_cols(self):
-        """Parse results file into lists of values, one per column."""
+        """Parse output files into lists of values, one per column."""
         self.run_col = []
         self.flows_col = []
         self.runtime_col = []
@@ -54,7 +56,10 @@ class Stats(object):
         self.one_load_col = []
         self.five_load_col = []
         self.fifteen_load_col = []
+        self.err_run_col = []
+        self.err_val_col = []
 
+        # Parse file with non-error run data
         with open(self.results_file, "rb") as results_fd:
             results_reader = csv.reader(results_fd)
             for row in results_reader:
@@ -73,6 +78,17 @@ class Stats(object):
                     self.five_load_col.append(float(row[self.five_load_index]))
                     self.fifteen_load_col.append(
                         float(row[self.fifteen_load_index]))
+                except ValueError:
+                    # Skips header
+                    continue
+
+        # Parse file with msgbuff error data
+        with open(self.msgbuf_err_file, "rb") as err_fd:
+            err_reader = csv.reader(err_fd)
+            for row in err_reader:
+                try:
+                    self.err_run_col.append(float(row[self.err_run_index]))
+                    self.err_val_col.append(float(row[self.err_val_index]))
                 except ValueError:
                     # Skips header
                     continue
@@ -116,9 +132,9 @@ class Stats(object):
     def build_runtime_graph(self, total_gcount, graph_num):
         """Plot CBench runtime length data.
 
-        :paruntime total_gcount: Total number of graphs to render.
+        :param total_gcount: Total number of graphs to render.
         :type total_gcount: int
-        :paruntime graph_num: Number for this graph, <= total_gcount.
+        :param graph_num: Number for this graph, <= total_gcount.
         :type graph_num: int
 
         """
@@ -132,9 +148,9 @@ class Stats(object):
     def build_iowait_graph(self, total_gcount, graph_num):
         """Plot iowait data.
 
-        :paiowait total_gcount: Total number of graphs to render.
+        :param total_gcount: Total number of graphs to render.
         :type total_gcount: int
-        :paiowait graph_num: Number for this graph, <= total_gcount.
+        :param graph_num: Number for this graph, <= total_gcount.
         :type graph_num: int
 
         """
@@ -148,9 +164,9 @@ class Stats(object):
     def build_steal_time_graph(self, total_gcount, graph_num):
         """Plot steal time data.
 
-        :pasteal_time total_gcount: Total number of graphs to render.
+        :param total_gcount: Total number of graphs to render.
         :type total_gcount: int
-        :pasteal_time graph_num: Number for this graph, <= total_gcount.
+        :param graph_num: Number for this graph, <= total_gcount.
         :type graph_num: int
 
         """
@@ -164,9 +180,9 @@ class Stats(object):
     def build_one_load_graph(self, total_gcount, graph_num):
         """Plot one minute load data.
 
-        :paone_load total_gcount: Total number of graphs to render.
+        :param total_gcount: Total number of graphs to render.
         :type total_gcount: int
-        :paone_load graph_num: Number for this graph, <= total_gcount.
+        :param graph_num: Number for this graph, <= total_gcount.
         :type graph_num: int
 
         """
@@ -180,9 +196,9 @@ class Stats(object):
     def build_five_load_graph(self, total_gcount, graph_num):
         """Plot five minute load data.
 
-        :pafive_load total_gcount: Total number of graphs to render.
+        :param total_gcount: Total number of graphs to render.
         :type total_gcount: int
-        :pafive_load graph_num: Number for this graph, <= total_gcount.
+        :param graph_num: Number for this graph, <= total_gcount.
         :type graph_num: int
 
         """
@@ -196,14 +212,28 @@ class Stats(object):
     def build_fifteen_load_graph(self, total_gcount, graph_num):
         """Plot fifteen minute load data.
 
-        :pafifteen_load total_gcount: Total number of graphs to render.
+        :param total_gcount: Total number of graphs to render.
         :type total_gcount: int
-        :pafifteen_load graph_num: Number for this graph, <= total_gcount.
+        :param graph_num: Number for this graph, <= total_gcount.
         :type graph_num: int
 
         """
         self.build_generic_graph(total_gcount, graph_num,
                                  "Fifteen Minute Load", self.fifteen_load_col)
+
+    def build_msgbuf_err_graph(self, total_gcount, graph_num):
+        """Plot CBench msgbuf error data.
+
+        We want the graph to visually line up with the flows graph, to
+        watch for areas that corrolate, so need to use run_col as
+        X axis.
+
+        Y axis should be vars from the set {no_error, -1, 0}, which
+        represent a normal CBench run, a msgbuf = 0 or a msgbuf = -1
+        error.
+
+        """
+        
 
     def compute_generic_stats(self, stats_name, stats_col):
         """Helper for computing generic stats."""
@@ -223,9 +253,9 @@ class Stats(object):
     def build_generic_graph(self, total_gcount, graph_num, y_label, data_col):
         """Helper for plotting generic data.
 
-        :pageneric total_gcount: Total number of graphs to render.
+        :param total_gcount: Total number of graphs to render.
         :type total_gcount: int
-        :pageneric graph_num: Number for this graph, <= total_gcount.
+        :param graph_num: Number for this graph, <= total_gcount.
         :type graph_num: int
         :param y_label: Lable of Y axis.
         :type y_label: string
@@ -233,7 +263,7 @@ class Stats(object):
         :type data_col: list
 
         """
-        # Pagenerics are numrows, numcols, fignum
+        # Params are numrows, numcols, fignum
         pyplot.subplot(total_gcount, 1, graph_num)
         # "go" means green O's
         pyplot.plot(self.run_col, data_col, "go")

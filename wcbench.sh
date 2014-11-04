@@ -49,10 +49,10 @@ CBENCH_BIN="/usr/local/bin/cbench"  # Path to CBench binary
 declare -a results
 
 # The order of these array values determines column order in RESULTS_FILE
-cols=(run_num cbench_avg start_time end_time controller_ip human_time
-    num_switches num_macs tests_per_switch ms_per_test start_steal_time
-    end_steal_time total_ram used_ram free_ram cpus one_min_load five_min_load
-    fifteen_min_load controller start_iowait end_iowait)
+cols=(run_num cbench_min cbench_max cbench_avg start_time end_time controller_ip 
+      human_time num_switches num_macs tests_per_switch ms_per_test start_steal_time
+      end_steal_time total_ram used_ram free_ram cpus one_min_load five_min_load
+      fifteen_min_load controller start_iowait end_iowait)
 
 # This two-stat-array system is needed until I find an answer to this question:
 # http://goo.gl/e0M8Tp
@@ -439,14 +439,26 @@ run_cbench()
 
     # Parse out average responses/sec, log/handle very rare unexplained errors
     # This logic can be removed if/when the root cause of this error is discovered and fixed
+
+    # adding min and max as we can plot these as well. 
+    cbench_min=`echo "$cbench_output" | grep RESULT | awk '{print $8}' | awk -F'/' '{print $1}'`
+    cbench_max=`echo "$cbench_output" | grep RESULT | awk '{print $8}' | awk -F'/' '{print $2}'`
     cbench_avg=`echo "$cbench_output" | grep RESULT | awk '{print $8}' | awk -F'/' '{print $3}'`
     if [ -z "$cbench_avg" ]; then
         echo "WARNING: Rare error occurred: failed to parse avg. See $CBENCH_LOG." >&2
         echo "Run $(next_run_num) failed to record a CBench average. CBench details:" >> $CBENCH_LOG
         echo "$cbench_output" >> $CBENCH_LOG
+
+        # Record msgbuf err val (0 or -1) and run num in CSV format for stats
+        msgbuf_err=`echo $cbench_output | grep msgbuf | awk '{print $4}' | tr -d :`
+        echo "$(next_run_num),$msgbuf_err" >> $CBENCH_LOG_CSV
         return
     else
+        echo "Min responses/second: $cbench_min"
+        echo "max responses/sesond: $cbench_max"
         echo "Average responses/second: $cbench_avg"
+        results[$(name_to_index "cbench_min")]=$cbench_min
+        results[$(name_to_index "cbench_max")]=$cbench_max
         results[$(name_to_index "cbench_avg")]=$cbench_avg
     fi
 
@@ -792,6 +804,7 @@ while getopts ":hvrcip:ot:kd" opt; do
             TESTS_PER_SWITCH=1
             CBENCH_WARMUP=0
             echo "Set MS_PER_TEST to $MS_PER_TEST, TESTS_PER_SWITCH to $TESTS_PER_SWITCH, CBENCH_WARMUP to $CBENCH_WARMUP"
+            run_cbench
             ;;
         k)
             # Kill OpenDaylight
