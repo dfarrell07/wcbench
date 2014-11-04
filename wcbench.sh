@@ -727,12 +727,16 @@ if [ $# -eq 0 ]; then
 fi
 
 # Parse options given from command line
-while getopts ":hrcip:ot:kd" opt; do
+while getopts ":hvrcip:ot:kd" opt; do
     case "$opt" in
         h)
             # Help message
             usage
             exit $EX_OK
+            ;;
+        v)
+            # Output debug info verbosely
+            VERBOSE=true
             ;;
         r)
             # Run CBench against OpenDaylight
