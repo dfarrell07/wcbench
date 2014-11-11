@@ -44,6 +44,7 @@ PLUGIN_DIR=$ODL_DIR/plugins  # ODL plugin directory
 RESULTS_FILE=$BASE_DIR/"results.csv"  # File that results are stored in
 CBENCH_LOG=$BASE_DIR/"cbench.log"  # Log file used to store strange error msgs
 CBENCH_BIN="/usr/local/bin/cbench"  # Path to CBench binary
+FEATURES_FILE=$ODL_DIR/etc/org.apache.karaf.features.cfg  # Karaf features to install
 
 # Array that stores results in indexes defined by cols array
 declare -a results
@@ -477,6 +478,65 @@ uninstall_odl()
 }
 
 ###############################################################################
+# Checks if the given feature is in list to be installed at boot
+# Globals:
+#   FEATURES_FILE
+#   EX_OK
+#   EX_NOT_FOUND
+# Arguments:
+#   Feature to search featuresBoot list for
+# Returns:
+#   EX_OK if feature already in featuresBoot list
+#   EX_NOT_FOUND if feature isn't in featuresBoot list
+###############################################################################
+is_in_featuresBoot()
+{
+    feature=$1
+
+    # Check if feature is already set to be installed at boot
+    if $(grep featuresBoot= $FEATURES_FILE | grep -q $feature); then
+        return $EX_OK
+    else
+        return $EX_NOT_FOUND
+    fi
+}
+
+###############################################################################
+# Adds features to be installed by Karaf at ODL boot
+# Globals:
+#   FEATURES_FILE
+#   EX_OK
+#   EX_ERR
+# Arguments:
+#   Feature to append to end of featuresBoot CSV list
+# Returns:
+#   EX_OK if feature already is installed or was successfully added
+#   EX_ERR if failed to add feature to group installed at boot
+###############################################################################
+add_to_featuresBoot()
+{
+    feature=$1
+
+    # Check if feature is already set to be installed at boot
+    if is_in_featuresBoot $feature; then
+        echo "$feature is already set to be installed at boot"
+        return $EX_OK
+    fi
+
+    # Append feature to end of boot-install list
+    sed -i "/^featuresBoot=/ s/$/,$feature/" $FEATURES_FILE
+
+    # Check if feature was added to install list correctly
+    if is_in_featuresBoot $feature; then
+        echo "$feature added to features installed at boot"
+        return $EX_OK
+    else
+        echo "ERROR: Failed to add $feature to features installed at boot"
+        return $EX_ERR
+    fi
+}
+
+###############################################################################
 # Installs latest build of the OpenDaylight controller
 # Note that the installed build is via an Integration team Jenkins job
 # Globals:
@@ -531,6 +591,10 @@ install_opendaylight()
     else
         unzip -d $BASE_DIR $ODL_ZIP_PATH &> /dev/null
     fi
+
+    # Add required features to list installed by Karaf at ODL boot
+    add_to_featuresBoot "odl-openflowplugin-flow-services"
+    add_to_featuresBoot "odl-openflowplugin-drop-test"
 
     # TODO: Do all required Karaf config.
     # Relevant Issue: https://github.com/dfarrell07/wcbench/issues/36
