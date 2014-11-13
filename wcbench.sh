@@ -742,8 +742,7 @@ issue_odl_config()
 }
 
 ###############################################################################
-# Stops OpenDaylight using run.sh
-# TODO: Update to work with Karaf
+# Stops OpenDaylight
 # Globals:
 #   ODL_DIR
 #   VERBOSE
@@ -759,9 +758,9 @@ stop_opendaylight()
     if odl_started; then
         echo "Stopping OpenDaylight"
         if "$VERBOSE" = true; then
-            ./run.sh -stop
+            ./bin/stop
         else
-            ./run.sh -stop &> /dev/null
+            ./bin/stop &> /dev/null
         fi
     else
         echo "OpenDaylight isn't running"
