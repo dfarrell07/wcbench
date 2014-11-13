@@ -140,6 +140,7 @@ cbench_installed()
 # This has been tested on fresh cloud versions of Fedora 20 and CentOS 6.5
 # Not currently building oflops/netfpga-packet-generator-c-library (optional)
 # Globals:
+#   VERBOSE
 #   EX_OK
 #   EX_ERR
 #   OFLOPS_DIR
@@ -414,6 +415,7 @@ write_results()
 # Globals:
 #   CONTROLLER_IP
 #   CONTROLLER_PORT
+#   VERBOSE
 #   MS_PER_TEST
 #   TEST_PER_SWITCH
 #   NUM_SWITCHES
@@ -540,14 +542,17 @@ add_to_featuresBoot()
 # Installs latest build of the OpenDaylight controller
 # Note that the installed build is via an Integration team Jenkins job
 # Globals:
-#   BASE_DIR
+#   ODL_DIR
+#   VERBOSE
 #   ODL_ZIP_DIR
+#   BASE_DIR
+#   ODL_ZIP_PATH
 #   ODL_ZIP
 #   EX_ERR
 # Arguments:
 #   None
 # Returns:
-#   EX_ERR if ODL download fails, typically because of version bump
+#   EX_ERR if ODL install fails
 ###############################################################################
 install_opendaylight()
 {
@@ -628,6 +633,9 @@ odl_installed()
 # Assumes you've checked that ODL is installed
 # Globals:
 #   ODL_DIR
+#   VERBOSE
+#   EX_OK
+#   EX_NOT_FOUND
 # Arguments:
 #   None
 # Returns:
@@ -660,6 +668,7 @@ odl_started()
 #   EX_OK
 #   processors
 #   OSGI_PORT
+#   VERBOSE
 #   ODL_STARTUP_DELAY
 # Arguments:
 #   None
@@ -713,6 +722,7 @@ start_opendaylight()
 # TODO: This can be issued too early. Smarter check needed.
 # Relevant Issue: https://github.com/dfarrell07/wcbench/issues/6
 # Globals:
+#   VERBOSE
 #   OSGI_PORT
 # Arguments:
 #   None
@@ -736,8 +746,10 @@ issue_odl_config()
 
 ###############################################################################
 # Stops OpenDaylight using run.sh
+# TODO: Update to work with Karaf
 # Globals:
 #   ODL_DIR
+#   VERBOSE
 # Arguments:
 #   None
 # Returns:
