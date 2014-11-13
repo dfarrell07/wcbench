@@ -639,9 +639,9 @@ odl_started()
     old_cwd=$PWD
     cd $ODL_DIR
     if "$VERBOSE" = true; then
-        ./run.sh -status
+        ./bin/status
     else
-        ./run.sh -status &> /dev/null
+        ./bin/status &> /dev/null
     fi
     if [ $? = 0 ]; then
         return $EX_OK
