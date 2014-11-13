@@ -25,9 +25,6 @@ MS_PER_TEST=10000  # Default milliseconds to run each CBench test
 CBENCH_WARMUP=1  # Default number of warmup cycles to run CBench
 OSGI_PORT=2400  # Port that the OSGi console listens for telnet on
 ODL_STARTUP_DELAY=90  # Default time in seconds to give ODL to start
-ODL_RUNNING_STATUS=0  # run.sh gives this status when ODL is running
-ODL_STOPPED_STATUS=255  # run.sh gives this status when ODL is stopped
-ODL_BROKEN_STATUS=1  # run.sh gives this status when things are FUBR
 CONTROLLER="OpenDaylight"  # Currently only support ODL
 CONTROLLER_IP="localhost"  # Change this to remote IP if running on two systems
 CONTROLLER_PORT=6633  # Default port for OpenDaylight
@@ -686,9 +683,9 @@ start_opendaylight()
         echo "Starting OpenDaylight"
         if [ -z $processors ]; then
             if "$VERBOSE" = true; then
-                ./run.sh -start $OSGI_PORT -of13 -Xms1g -Xmx4g
+                ./bin/start
             else
-                ./run.sh -start $OSGI_PORT -of13 -Xms1g -Xmx4g &> /dev/null
+                ./bin/start &> /dev/null
             fi
         else
             echo "Pinning ODL to $processors processor(s)"
@@ -698,9 +695,9 @@ start_opendaylight()
             fi
             # Use taskset to pin ODL to a given number of processors
             if "$VERBOSE" = true; then
-                taskset -c 0-$(expr $processors - 1) ./run.sh -start $OSGI_PORT -of13 -Xms1g -Xmx4g
+                taskset -c 0-$(expr $processors - 1) ./bin/start
             else
-                taskset -c 0-$(expr $processors - 1) ./run.sh -start $OSGI_PORT -of13 -Xms1g -Xmx4g &> /dev/null
+                taskset -c 0-$(expr $processors - 1) ./bin/start  &> /dev/null
             fi
         fi
     fi
