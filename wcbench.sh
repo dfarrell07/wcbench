@@ -23,7 +23,7 @@ NUM_MACS=100000  # Default number of MACs for CBench to use
 TESTS_PER_SWITCH=10  # Default number of CBench tests to do per CBench run
 MS_PER_TEST=10000  # Default milliseconds to run each CBench test
 CBENCH_WARMUP=1  # Default number of warmup cycles to run CBench
-OSGI_PORT=2400  # Port that the OSGi console listens for telnet on
+KARAF_SHELL_PORT=8101 # Port that the Karaf shell listens on
 ODL_STARTUP_DELAY=90  # Default time in seconds to give ODL to start
 CONTROLLER="OpenDaylight"  # Currently only support ODL
 CONTROLLER_IP="localhost"  # Change this to remote IP if running on two systems
@@ -598,11 +598,6 @@ install_opendaylight()
     add_to_featuresBoot "odl-openflowplugin-flow-services"
     add_to_featuresBoot "odl-openflowplugin-drop-test"
 
-    # TODO: Do all required Karaf config.
-    # Relevant Issue: https://github.com/dfarrell07/wcbench/issues/36
-    echo "FIXME: Karaf config not yet built. See issue #36." >&2
-    return $EX_ERR
-
     # TODO: Change controller log level to ERROR. Confirm this is necessary.
     # Relevant Issue: https://github.com/dfarrell07/wcbench/issues/3
 }
@@ -664,7 +659,6 @@ odl_started()
 #   ODL_DIR
 #   EX_OK
 #   processors
-#   OSGI_PORT
 #   VERBOSE
 #   ODL_STARTUP_DELAY
 # Arguments:
@@ -714,13 +708,10 @@ start_opendaylight()
 }
 
 ###############################################################################
-# Give `dropAllPackets on` command via telnet to OSGi
-# See: http://goo.gl/VEJIRc
-# TODO: This can be issued too early. Smarter check needed.
-# Relevant Issue: https://github.com/dfarrell07/wcbench/issues/6
+# Give `dropAllPackets on` command via Karaf shell to OSGi
 # Globals:
 #   VERBOSE
-#   OSGI_PORT
+#   KARAF_SHELL_PORT
 # Arguments:
 #   None
 # Returns:
@@ -728,17 +719,17 @@ start_opendaylight()
 ###############################################################################
 issue_odl_config()
 {
-    if ! command -v telnet &> /dev/null; then
-        echo "Installing telnet, as it's required for issuing ODL config."
+    # This could be done with public key crypto, but sshpass is easier
+    if ! command -v sshpass &> /dev/null; then
+        echo "Installing sshpass. It's used for issuing ODL config."
         if "$VERBOSE" = true; then
-            sudo yum install -y telnet
+            sudo yum install -y sshpass
         else
-            sudo yum install -y telnet &> /dev/null
+            sudo yum install -y sshpass &> /dev/null
         fi
     fi
-    echo "Issuing \`dropAllPacketsRpc on\` command via telnet to localhost:$OSGI_PORT"
-    # NB: Not using sleeps results in silent failures (cmd has no effect)
-    (sleep 3; echo dropAllPacketsRpc on; sleep 3) | telnet localhost $OSGI_PORT
+    echo "Issuing \`dropAllPacketsRpc on\` command via Karaf shell to localhost:$KARAF_SHELL_PORT"
+    sshpass -p karaf ssh -p $KARAF_SHELL_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no karaf@localhost dropallpacketsrpc on
 }
 
 ###############################################################################
