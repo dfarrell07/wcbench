@@ -18,7 +18,7 @@ EX_ERR=1
 VERBOSE=false
 
 # Params for CBench test and ODL config
-NUM_SWITCHES=256  # Default number of switches for CBench to simulate
+NUM_SWITCHES=64  # Default number of switches for CBench to simulate
 NUM_MACS=100000  # Default number of MACs for CBench to use
 TESTS_PER_SWITCH=10  # Default number of CBench tests to do per CBench run
 MS_PER_TEST=10000  # Default milliseconds to run each CBench test
