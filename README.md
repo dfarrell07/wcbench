@@ -376,6 +376,4 @@ Note that the code is Open Source under a BSD 2-clause license.
 
 ### Contact
 
-As mentioned in the [Contributing section](https://github.com/dfarrell07/wcbench/blob/master/README.md#contributing), for bugs/features, please raise an [Issue](https://github.com/dfarrell07/wcbench/issues) on the WCBench GitHub page.
-
-Daniel Farrell is the main developer of WCBench. You can contact him directly at dfarrell@redhat.com or dfarrell07@gmail.com. He also hangs out on IRC at Freenode/#opendaylight most of his waking hours.
+For feature requests, bug reports and questions please raise an [Issue](https://github.com/dfarrell07/wcbench/issues). Daniel Farrell is the primary developer of this tool. He can be contacted directly at dfarrell@redhat.com or on IRC (dfarrell07 on Freenode). **Prefer public, documented communication like Issues over direct 1-1 communication. This is an Open Source project. Keep the community in the loop.**
