@@ -18,16 +18,13 @@ EX_ERR=1
 VERBOSE=false
 
 # Params for CBench test and ODL config
-NUM_SWITCHES=256  # Default number of switches for CBench to simulate
+NUM_SWITCHES=64  # Default number of switches for CBench to simulate
 NUM_MACS=100000  # Default number of MACs for CBench to use
 TESTS_PER_SWITCH=10  # Default number of CBench tests to do per CBench run
 MS_PER_TEST=10000  # Default milliseconds to run each CBench test
 CBENCH_WARMUP=1  # Default number of warmup cycles to run CBench
-OSGI_PORT=2400  # Port that the OSGi console listens for telnet on
+KARAF_SHELL_PORT=8101 # Port that the Karaf shell listens on
 ODL_STARTUP_DELAY=90  # Default time in seconds to give ODL to start
-ODL_RUNNING_STATUS=0  # run.sh gives this status when ODL is running
-ODL_STOPPED_STATUS=255  # run.sh gives this status when ODL is stopped
-ODL_BROKEN_STATUS=1  # run.sh gives this status when things are FUBR
 CONTROLLER="OpenDaylight"  # Currently only support ODL
 CONTROLLER_IP="localhost"  # Change this to remote IP if running on two systems
 CONTROLLER_PORT=6633  # Default port for OpenDaylight
@@ -37,13 +34,14 @@ SSH_HOSTNAME="cbenchc"  # You'll need to update this to reflect ~/.ssh/config
 BASE_DIR=$HOME  # Directory that code and such is dropped into
 OF_DIR=$BASE_DIR/openflow  # Directory that contains OpenFlow code
 OFLOPS_DIR=$BASE_DIR/oflops  # Directory that contains oflops repo
-ODL_DIR=$BASE_DIR/opendaylight  # Directory with ODL code
-ODL_ZIP="distributions-base-0.2.0-SNAPSHOT-osgipackage.zip"  # ODL zip name
+ODL_DIR=$BASE_DIR/distribution-karaf-0.2.0-Helium  # Directory with ODL code
+ODL_ZIP="distribution-karaf-0.2.0-Helium.zip"  # ODL zip name
 ODL_ZIP_PATH=$BASE_DIR/$ODL_ZIP  # Full path to ODL zip
 PLUGIN_DIR=$ODL_DIR/plugins  # ODL plugin directory
 RESULTS_FILE=$BASE_DIR/"results.csv"  # File that results are stored in
 CBENCH_LOG=$BASE_DIR/"cbench.log"  # Log file used to store strange error msgs
 CBENCH_BIN="/usr/local/bin/cbench"  # Path to CBench binary
+FEATURES_FILE=$ODL_DIR/etc/org.apache.karaf.features.cfg  # Karaf features to install
 
 # Array that stores results in indexes defined by cols array
 declare -a results
@@ -139,6 +137,7 @@ cbench_installed()
 # This has been tested on fresh cloud versions of Fedora 20 and CentOS 6.5
 # Not currently building oflops/netfpga-packet-generator-c-library (optional)
 # Globals:
+#   VERBOSE
 #   EX_OK
 #   EX_ERR
 #   OFLOPS_DIR
@@ -413,6 +412,7 @@ write_results()
 # Globals:
 #   CONTROLLER_IP
 #   CONTROLLER_PORT
+#   VERBOSE
 #   MS_PER_TEST
 #   TEST_PER_SWITCH
 #   NUM_SWITCHES
@@ -432,7 +432,7 @@ run_cbench()
     if "$VERBOSE" = true; then
         cbench_output=`cbench -c $CONTROLLER_IP -p $CONTROLLER_PORT -m $MS_PER_TEST -l $TESTS_PER_SWITCH -s $NUM_SWITCHES -M $NUM_MACS -w $CBENCH_WARMUP`
     else
-        cbench_output=`cbench -c $CONTROLLER_IP -p $CONTROLLER_PORT -m $MS_PER_TEST -l $TESTS_PER_SWITCH -s $NUM_SWITCHES -M $NUM_MACS -w $CBENCH_WARMUP` &> /dev/null
+        cbench_output=`cbench -c $CONTROLLER_IP -p $CONTROLLER_PORT -m $MS_PER_TEST -l $TESTS_PER_SWITCH -s $NUM_SWITCHES -M $NUM_MACS -w $CBENCH_WARMUP &> /dev/null`
     fi
     get_post_test_stats
     get_time_irrelevant_stats
@@ -477,22 +477,87 @@ uninstall_odl()
 }
 
 ###############################################################################
+# Checks if the given feature is in list to be installed at boot
+# Globals:
+#   FEATURES_FILE
+#   EX_OK
+#   EX_NOT_FOUND
+# Arguments:
+#   Feature to search featuresBoot list for
+# Returns:
+#   EX_OK if feature already in featuresBoot list
+#   EX_NOT_FOUND if feature isn't in featuresBoot list
+###############################################################################
+is_in_featuresBoot()
+{
+    feature=$1
+
+    # Check if feature is already set to be installed at boot
+    if $(grep featuresBoot= $FEATURES_FILE | grep -q $feature); then
+        return $EX_OK
+    else
+        return $EX_NOT_FOUND
+    fi
+}
+
+###############################################################################
+# Adds features to be installed by Karaf at ODL boot
+# Globals:
+#   FEATURES_FILE
+#   EX_OK
+#   EX_ERR
+# Arguments:
+#   Feature to append to end of featuresBoot CSV list
+# Returns:
+#   EX_OK if feature already is installed or was successfully added
+#   EX_ERR if failed to add feature to group installed at boot
+###############################################################################
+add_to_featuresBoot()
+{
+    feature=$1
+
+    # Check if feature is already set to be installed at boot
+    if is_in_featuresBoot $feature; then
+        echo "$feature is already set to be installed at boot"
+        return $EX_OK
+    fi
+
+    # Append feature to end of boot-install list
+    sed -i "/^featuresBoot=/ s/$/,$feature/" $FEATURES_FILE
+
+    # Check if feature was added to install list correctly
+    if is_in_featuresBoot $feature; then
+        echo "$feature added to features installed at boot"
+        return $EX_OK
+    else
+        echo "ERROR: Failed to add $feature to features installed at boot"
+        return $EX_ERR
+    fi
+}
+
+###############################################################################
 # Installs latest build of the OpenDaylight controller
 # Note that the installed build is via an Integration team Jenkins job
 # Globals:
-#   BASE_DIR
+#   ODL_DIR
+#   VERBOSE
 #   ODL_ZIP_DIR
+#   BASE_DIR
+#   ODL_ZIP_PATH
 #   ODL_ZIP
 #   EX_ERR
 # Arguments:
 #   None
 # Returns:
-#   EX_ERR if ODL download fails, typically because of version bump
+#   EX_ERR if ODL install fails
 ###############################################################################
 install_opendaylight()
 {
-    # Remove old controller code
-    uninstall_odl
+    # Only remove unzipped code, as zip is large and unlikely to have changed.
+    if [ -d $ODL_DIR ]; then
+        echo "Removing $ODL_DIR"
+        rm -rf $ODL_DIR
+    fi
 
     # Install required packages
     echo "Installing OpenDaylight dependencies"
@@ -502,17 +567,26 @@ install_opendaylight()
         sudo yum install -y java-1.7.0-openjdk unzip wget &> /dev/null
     fi
 
-    # Grab last successful build
-    echo "Downloading last successful ODL build"
-    if "$VERBOSE" = true; then
-        wget -P $BASE_DIR "https://jenkins.opendaylight.org/integration/job/integration-master-project-centralized-integration/lastSuccessfulBuild/artifact/distributions/base/target/$ODL_ZIP"
+    # If we already have the zip archive, use that.
+    if [ -f $ODL_ZIP_PATH ]; then
+        echo "Using local $ODL_ZIP_PATH. Pass -d flag to remove."
     else
-        wget -P $BASE_DIR "https://jenkins.opendaylight.org/integration/job/integration-master-project-centralized-integration/lastSuccessfulBuild/artifact/distributions/base/target/$ODL_ZIP" &> /dev/null
+        # Grab last successful build
+        echo "Downloading last successful ODL build"
+        if "$VERBOSE" = true; then
+            wget -P $BASE_DIR "http://nexus.opendaylight.org/content/groups/public/org/opendaylight/integration/distribution-karaf/0.2.0-Helium/$ODL_ZIP"
+        else
+            wget -P $BASE_DIR "http://nexus.opendaylight.org/content/groups/public/org/opendaylight/integration/distribution-karaf/0.2.0-Helium/$ODL_ZIP" &> /dev/null
+        fi
     fi
+
+    # Confirm that download was successful
     if [ ! -f $ODL_ZIP_PATH ]; then
         echo "WARNING: Failed to dl ODL. Version bumped? If so, update \$ODL_ZIP" >&2
         return $EX_ERR
     fi
+
+    # Unzip ODL archive
     echo "Unzipping last successful ODL build"
     if "$VERBOSE" = true; then
         unzip -d $BASE_DIR $ODL_ZIP_PATH
@@ -520,17 +594,9 @@ install_opendaylight()
         unzip -d $BASE_DIR $ODL_ZIP_PATH &> /dev/null
     fi
 
-    # Make some plugin changes that are apparently required for CBench
-    echo "Downloading openflowplugin"
-    if "$VERBOSE" = true; then
-        wget -P $PLUGIN_DIR 'https://jenkins.opendaylight.org/openflowplugin/job/openflowplugin-merge/lastSuccessfulBuild/org.opendaylight.openflowplugin$drop-test/artifact/org.opendaylight.openflowplugin/drop-test/0.0.3-SNAPSHOT/drop-test-0.0.3-SNAPSHOT.jar'
-    else
-        wget -P $PLUGIN_DIR 'https://jenkins.opendaylight.org/openflowplugin/job/openflowplugin-merge/lastSuccessfulBuild/org.opendaylight.openflowplugin$drop-test/artifact/org.opendaylight.openflowplugin/drop-test/0.0.3-SNAPSHOT/drop-test-0.0.3-SNAPSHOT.jar' &> /dev/null
-    fi
-    echo "Removing simpleforwarding plugin"
-    rm $PLUGIN_DIR/org.opendaylight.controller.samples.simpleforwarding-0.4.2-SNAPSHOT.jar
-    echo "Removing arphandler plugin"
-    rm $PLUGIN_DIR/org.opendaylight.controller.arphandler-0.5.2-SNAPSHOT.jar
+    # Add required features to list installed by Karaf at ODL boot
+    add_to_featuresBoot "odl-openflowplugin-flow-services"
+    add_to_featuresBoot "odl-openflowplugin-drop-test"
 
     # TODO: Change controller log level to ERROR. Confirm this is necessary.
     # Relevant Issue: https://github.com/dfarrell07/wcbench/issues/3
@@ -559,6 +625,9 @@ odl_installed()
 # Assumes you've checked that ODL is installed
 # Globals:
 #   ODL_DIR
+#   VERBOSE
+#   EX_OK
+#   EX_NOT_FOUND
 # Arguments:
 #   None
 # Returns:
@@ -570,9 +639,9 @@ odl_started()
     old_cwd=$PWD
     cd $ODL_DIR
     if "$VERBOSE" = true; then
-        ./run.sh -status
+        ./bin/status
     else
-        ./run.sh -status &> /dev/null
+        ./bin/status &> /dev/null
     fi
     if [ $? = 0 ]; then
         return $EX_OK
@@ -590,7 +659,7 @@ odl_started()
 #   ODL_DIR
 #   EX_OK
 #   processors
-#   OSGI_PORT
+#   VERBOSE
 #   ODL_STARTUP_DELAY
 # Arguments:
 #   None
@@ -608,9 +677,9 @@ start_opendaylight()
         echo "Starting OpenDaylight"
         if [ -z $processors ]; then
             if "$VERBOSE" = true; then
-                ./run.sh -start $OSGI_PORT -of13 -Xms1g -Xmx4g
+                ./bin/start
             else
-                ./run.sh -start $OSGI_PORT -of13 -Xms1g -Xmx4g &> /dev/null
+                ./bin/start &> /dev/null
             fi
         else
             echo "Pinning ODL to $processors processor(s)"
@@ -620,9 +689,9 @@ start_opendaylight()
             fi
             # Use taskset to pin ODL to a given number of processors
             if "$VERBOSE" = true; then
-                taskset -c 0-$(expr $processors - 1) ./run.sh -start $OSGI_PORT -of13 -Xms1g -Xmx4g
+                taskset -c 0-$(expr $processors - 1) ./bin/start
             else
-                taskset -c 0-$(expr $processors - 1) ./run.sh -start $OSGI_PORT -of13 -Xms1g -Xmx4g &> /dev/null
+                taskset -c 0-$(expr $processors - 1) ./bin/start  &> /dev/null
             fi
         fi
     fi
@@ -639,12 +708,10 @@ start_opendaylight()
 }
 
 ###############################################################################
-# Give `dropAllPackets on` command via telnet to OSGi
-# See: http://goo.gl/VEJIRc
-# TODO: This can be issued too early. Smarter check needed.
-# Relevant Issue: https://github.com/dfarrell07/wcbench/issues/6
+# Give `dropAllPackets on` command via Karaf shell to OSGi
 # Globals:
-#   OSGI_PORT
+#   VERBOSE
+#   KARAF_SHELL_PORT
 # Arguments:
 #   None
 # Returns:
@@ -652,23 +719,24 @@ start_opendaylight()
 ###############################################################################
 issue_odl_config()
 {
-    if ! command -v telnet &> /dev/null; then
-        echo "Installing telnet, as it's required for issuing ODL config."
+    # This could be done with public key crypto, but sshpass is easier
+    if ! command -v sshpass &> /dev/null; then
+        echo "Installing sshpass. It's used for issuing ODL config."
         if "$VERBOSE" = true; then
-            sudo yum install -y telnet
+            sudo yum install -y sshpass
         else
-            sudo yum install -y telnet &> /dev/null
+            sudo yum install -y sshpass &> /dev/null
         fi
     fi
-    echo "Issuing \`dropAllPacketsRpc on\` command via telnet to localhost:$OSGI_PORT"
-    # NB: Not using sleeps results in silent failures (cmd has no effect)
-    (sleep 3; echo dropAllPacketsRpc on; sleep 3) | telnet localhost $OSGI_PORT
+    echo "Issuing \`dropAllPacketsRpc on\` command via Karaf shell to localhost:$KARAF_SHELL_PORT"
+    sshpass -p karaf ssh -p $KARAF_SHELL_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no karaf@localhost dropallpacketsrpc on
 }
 
 ###############################################################################
-# Stops OpenDaylight using run.sh
+# Stops OpenDaylight
 # Globals:
 #   ODL_DIR
+#   VERBOSE
 # Arguments:
 #   None
 # Returns:
@@ -681,9 +749,9 @@ stop_opendaylight()
     if odl_started; then
         echo "Stopping OpenDaylight"
         if "$VERBOSE" = true; then
-            ./run.sh -stop
+            ./bin/stop
         else
-            ./run.sh -stop &> /dev/null
+            ./bin/stop &> /dev/null
         fi
     else
         echo "OpenDaylight isn't running"
