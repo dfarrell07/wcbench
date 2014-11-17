@@ -18,7 +18,7 @@ CBench, wrapped in stuff that makes it useful.
 
 CBench is a somewhat classic SDN controller benchmark tool. It blasts a controller with OpenFlow packet-in messages and counts the rate of flow mod messages returned. WCBench consumes CBench as a library, then builds a robust test automation, stats collection and stats analysis/graphing system around it.
 
-WCBench currently only supports the OpenDaylight SDN controller, but it would be fairly easy to add support for other controllers. Community contributions are encouraged!
+WCBench currently only supports the Helium release of the OpenDaylight SDN controller, but it would be fairly easy to add support for other controllers. Community contributions are encouraged!
 
 ### Usage
 
@@ -33,12 +33,13 @@ Setup and/or run CBench and/or OpenDaylight.
 
 OPTIONS:
     -h Show this message
+    -v Output verbose debug info
     -c Install CBench
     -t <time> Run CBench for given number of minutes
     -r Run CBench against OpenDaylight
-    -i Install ODL from last successful build
+    -i Install OpenDaylight Helium
     -p <processors> Pin ODL to given number of processors
-    -o Run ODL from last successful build
+    -o Start and configure OpenDaylight Helium
     -k Kill OpenDaylight
     -d Delete local ODL and CBench code
 ```
@@ -170,7 +171,88 @@ The data collected by WCBench and stored in the results file for each run includ
 * The iowait value at the start of the test on the system running ODL
 * The iowait value at the end of the test on the system running ODL
 
-### Detailed Walkthrough
+### Detailed Walkthrough: Vagrant
+
+A Vagrantfile is provided for WCBench, which allows you to get an OpenDaylight+WCBench environment up-and-running trivially easily. Vagrant also allows folks on otherwise unsupported operating systems (Ubuntu, Debian, Windows) to use WCBench.
+
+If you don't have Vagrant installed already, head over to [their docs](https://docs.vagrantup.com/v2/installation/) and get that knocked out.
+
+If you haven't already, you'll need to clone the WCBench repo:
+
+```
+[~]$ git clone https://github.com/dfarrell07/wcbench.git
+```
+
+You can now trivially stand up a VM with OpenDaylight+CBench+WCBench properly configured:
+
+```
+[~/wcbench]$ vagrant up
+```
+
+If this is your first time using the `chef/fedora-20` Vagrant box, that'll have to download. Future `vagrant up`s will use a locally cached version. Once the box is provisioned, you can connect to it like this:
+
+```
+[~/wcbench]$ vagrant ssh
+Last login: Mon Nov 17 14:29:33 2014 from 10.0.2.2
+[vagrant@localhost ~]$
+```
+
+WCBench, OpenDaylight and CBench are already installed and configured. You can start OpenDaylight like this:
+
+```
+[vagrant@localhost ~]$ cd wcbench/
+[vagrant@localhost wcbench]$ ./wcbench.sh -o
+OpenDaylight is already running
+[vagrant@localhost wcbench]$ ./wcbench.sh -^C
+[vagrant@localhost wcbench]$ ./wcbench.sh -k
+Stopping OpenDaylight
+[vagrant@localhost wcbench]$ ./wcbench.sh -o
+Starting OpenDaylight
+Giving ODL 90 seconds to get up and running
+80 seconds remaining
+70 seconds remaining
+60 seconds remaining
+50 seconds remaining
+40 seconds remaining
+30 seconds remaining
+20 seconds remaining
+10 seconds remaining
+0 seconds remaining
+Issuing `dropAllPacketsRpc on` command via Karaf shell to localhost:8101
+Warning: Permanently added '[localhost]:8101' (DSA) to the list of known hosts.
+Authenticated with partial success.
+Password authentication
+DropAllFlows transitions to on
+```
+
+Run CBench against OpenDaylight like this:
+
+```
+[vagrant@localhost wcbench]$ ./wcbench.sh -r
+Collecting pre-test stats
+Running CBench against ODL on localhost:6633
+Collecting post-test stats
+Collecting time-irrelevant stats
+Average responses/second: 29486.95
+```
+
+Since the WCBench Vagrant box is headless, you'll want to move the `results.txt` to a server with a GUI for graphing.
+
+Vagrant hard-links `/home/vagrant/wcbench/` to the directory on your local system that contains WCBench's Vagrantfile. Dropping `results.txt` in `/home/vagrant/wcbench/` will therefore move it to your local system for analysis. You can also modify the `RESULTS_FILE` variable in `wcbench.sh` to point at `/home/vagrant/wcbench/`, if you'd like to put it there by default.
+
+```
+# Move results.txt to hard-linked dir
+[vagrant@localhost wcbench]$ mv ../results.csv .
+```
+
+```
+# Configure wcbench to create results.txt in hard-linked dir
+RESULTS_FILE=$BASE_DIR/wcbench/"results.csv"
+```
+
+You can now generate graphs and stats, as described in the [Usage Details: stats.py](#user-content-usage-details-statspy) section.
+
+### Detailed Walkthrough: Manual
 
 This walkthrough describes how to setup a system for WCBench testing, starting with a totally fresh [Fedora 20 Cloud](http://fedoraproject.org/get-fedora#clouds) install. I'm going to leave out the VM creation details for the sake of space. As long as you can SSH into the machine and it has access to the Internet, all of the following should work as-is. Note that this process has also been tested on CentOS 6.5 (so obviously should work on RHEL).
 
@@ -195,7 +277,7 @@ You can now SSH into your fresh VM:
 ```
 [~]$ ssh wcbench
 Warning: Permanently added '10.3.9.110' (RSA) to the list of known hosts.
-[fedora@dfarrell-wcbench ~]$ 
+[fedora@dfarrell-wcbench ~]$
 ```
 
 You'll need a utility like screen or tmux, so you can start long-running tests, log out of the system and leave them running. My Linux configurations are very scripted, so here's how I install tmux and its configuration file. You're welcome to copy this.
