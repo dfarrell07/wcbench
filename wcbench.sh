@@ -771,13 +771,19 @@ stop_opendaylight()
     old_cwd=$PWD
     cd $ODL_DIR
     if odl_started; then
-        # TODO: Loop until actuall stopped?
-        echo "Told ODL to stop, but it'll take a few seconds for it to do so."
+        echo "Told ODL to stop. Waiting on it to do so..."
+        echo "This check is useless if you have other Java processes running (ctrl+c it)."
         if "$VERBOSE" = true; then
             ./bin/stop
         else
             ./bin/stop &> /dev/null
         fi
+        # Loop until actually stopped
+        until ! pgrep java &> /dev/null
+        do
+            sleep .5
+        done
+        echo "OpenDaylight has stopped."
     else
         echo "OpenDaylight isn't running"
     fi
