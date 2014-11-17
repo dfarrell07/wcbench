@@ -98,6 +98,7 @@ Setup and/or run CBench and/or OpenDaylight.
 
 OPTIONS:
     -h Show this message
+    -v Output verbose debug info
     -c Install CBench
     -t <time> Run CBench for given number of minutes
     -r Run CBench against OpenDaylight
