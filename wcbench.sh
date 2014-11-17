@@ -102,15 +102,16 @@ OPTIONS:
     -c Install CBench
     -t <time> Run CBench for given number of minutes
     -r Run CBench against OpenDaylight
-    -i Install ODL from last successful build
+    -i Install OpenDaylight Helium
     -p <processors> Pin ODL to given number of processors
-    -o Run ODL from last successful build
+    -o Start and configure OpenDaylight Helium
     -k Kill OpenDaylight
     -d Delete local ODL and CBench code
 EOF
 }
 
 ###############################################################################
+# Checks if CBench is installed
 # Globals:
 #   EX_OK
 #   EX_NOT_FOUND
