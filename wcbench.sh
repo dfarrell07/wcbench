@@ -603,9 +603,6 @@ install_opendaylight()
     # Add required features to list installed by Karaf at ODL boot
     add_to_featuresBoot "odl-openflowplugin-flow-services"
     add_to_featuresBoot "odl-openflowplugin-drop-test"
-
-    # TODO: Change controller log level to ERROR. Confirm this is necessary.
-    # Relevant Issue: https://github.com/dfarrell07/wcbench/issues/3
 }
 
 ###############################################################################
@@ -714,7 +711,7 @@ start_opendaylight()
 }
 
 ###############################################################################
-# Give `dropAllPackets on` command via Karaf shell to OSGi
+# Set `dropAllPackets on` and log level to DEBUG via Karaf shell
 # Globals:
 #   VERBOSE
 #   KARAF_SHELL_PORT
@@ -734,8 +731,14 @@ issue_odl_config()
             sudo yum install -y sshpass &> /dev/null
         fi
     fi
+
+    # Set `dropAllPacketsRpc on`
     echo "Issuing \`dropAllPacketsRpc on\` command via Karaf shell to localhost:$KARAF_SHELL_PORT"
     sshpass -p karaf ssh -p $KARAF_SHELL_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no karaf@localhost dropallpacketsrpc on
+
+    # Change log level to ERROR
+    echo "Issuing \`log:set ERROR\` command via Karaf shell to localhost:$KARAF_SHELL_PORT"
+    sshpass -p karaf ssh -p $KARAF_SHELL_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no karaf@localhost log:set ERROR
 }
 
 ###############################################################################
