@@ -10,7 +10,8 @@ CBench, wrapped in stuff that makes it useful.
         - [Usage Details: loop_wcbench.sh](#user-content-usage-details-loop_wcbenchsh)
         - [Usage Details: stats.py](#user-content-usage-details-statspy)
     - [WCBench Results](#user-content-wcbench-results)
-    - [Detailed Walkthrough](#user-content-detailed-walkthrough)
+    - [Detailed Walkthrough: Vagrant](#user-content-detailed-walkthrough-vagrant)
+    - [Detailed Walkthrough: Manual](#user-content-detailed-walkthrough-manual)
     - [Contributing](#user-content-contributing)
     - [Contact](#user-content-contact)
 
