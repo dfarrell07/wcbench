@@ -24,7 +24,6 @@ TESTS_PER_SWITCH=10  # Default number of CBench tests to do per CBench run
 MS_PER_TEST=10000  # Default milliseconds to run each CBench test
 CBENCH_WARMUP=1  # Default number of warmup cycles to run CBench
 KARAF_SHELL_PORT=8101  # Port that the Karaf shell listens on
-ODL_STARTUP_DELAY=90  # Default time in seconds to give ODL to start
 CONTROLLER="OpenDaylight"  # Currently only support ODL
 CONTROLLER_IP="localhost"  # Change this to remote IP if running on two systems
 CONTROLLER_PORT=6633  # Default port for OpenDaylight
@@ -664,7 +663,6 @@ odl_started()
 #   EX_OK
 #   processors
 #   VERBOSE
-#   ODL_STARTUP_DELAY
 # Arguments:
 #   None
 # Returns:
@@ -687,10 +685,6 @@ start_opendaylight()
             fi
         else
             echo "Pinning ODL to $processors processor(s)"
-            if [ $processors == 1 ]; then
-                echo "Increasing ODL start time to 120s, as 1 processor will slow it down"
-                ODL_STARTUP_DELAY=120
-            fi
             # Use taskset to pin ODL to a given number of processors
             if "$VERBOSE" = true; then
                 taskset -c 0-$(expr $processors - 1) ./bin/start
@@ -700,14 +694,6 @@ start_opendaylight()
         fi
     fi
     cd $old_cwd
-    # TODO: Smarter block until ODL is actually up
-    # Relevant Issue: https://github.com/dfarrell07/wcbench/issues/6
-    echo "Giving ODL $ODL_STARTUP_DELAY seconds to get up and running"
-    while [ $ODL_STARTUP_DELAY -gt 0 ]; do
-        sleep 10
-        let ODL_STARTUP_DELAY=ODL_STARTUP_DELAY-10
-        echo "$ODL_STARTUP_DELAY seconds remaining"
-    done
     issue_odl_config
 }
 
@@ -734,12 +720,40 @@ issue_odl_config()
     fi
 
     # Set `dropAllPacketsRpc on`
-    echo "Issuing \`dropAllPacketsRpc on\` command via Karaf shell to localhost:$KARAF_SHELL_PORT"
-    sshpass -p karaf ssh -p $KARAF_SHELL_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no karaf@localhost dropallpacketsrpc on
+    echo "Will repeatedly attempt connecting to Karaf shell until it's ready"
+    # Loop until exit status 0 (success) given by Karaf shell
+    # Exit status 255 means Karaf shell isn't open for SSH connections yet
+    # Exit status 1 means `dropAllPacketsRpc on` isn't runnable yet
+    if "$VERBOSE" = true; then
+        until sshpass -p karaf ssh -p $KARAF_SHELL_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no karaf@localhost dropallpacketsrpc on
+        do
+            echo "Karaf shell isn't ready yet, sleeping 5 seconds..."
+            sleep 5
+        done
+    else
+        until sshpass -p karaf ssh -p $KARAF_SHELL_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no karaf@localhost dropallpacketsrpc on &> /dev/null
+        do
+            sleep 5
+        done
+    fi
+    echo "Issued \`dropAllPacketsRpc on\` command via Karaf shell to localhost:$KARAF_SHELL_PORT"
 
     # Change log level to ERROR
-    echo "Issuing \`log:set ERROR\` command via Karaf shell to localhost:$KARAF_SHELL_PORT"
-    sshpass -p karaf ssh -p $KARAF_SHELL_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no karaf@localhost log:set ERROR
+    # Loop until exit status 0 (success) given by Karaf shell
+    # Exit status 255 means Karaf shell isn't open for SSH connections yet
+    if "$VERBOSE" = true; then
+        until sshpass -p karaf ssh -p $KARAF_SHELL_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no karaf@localhost log:set ERROR
+        do
+            echo "Karaf shell isn't ready yet, sleeping 5 seconds..."
+            sleep 5
+        done
+    else
+        until sshpass -p karaf ssh -p $KARAF_SHELL_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no karaf@localhost log:set ERROR &> /dev/null
+        do
+            sleep 5
+        done
+    fi
+    echo "Issued \`log:set ERROR\` command via Karaf shell to localhost:$KARAF_SHELL_PORT"
 }
 
 ###############################################################################
@@ -757,7 +771,8 @@ stop_opendaylight()
     old_cwd=$PWD
     cd $ODL_DIR
     if odl_started; then
-        echo "Stopping OpenDaylight"
+        # TODO: Loop until actuall stopped?
+        echo "Told ODL to stop, but it'll take a few seconds for it to do so."
         if "$VERBOSE" = true; then
             ./bin/stop
         else
