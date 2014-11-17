@@ -41,6 +41,7 @@ PLUGIN_DIR=$ODL_DIR/plugins  # ODL plugin directory
 RESULTS_FILE=$BASE_DIR/"results.csv"  # File that results are stored in
 CBENCH_LOG=$BASE_DIR/"cbench.log"  # Log file used to store strange error msgs
 CBENCH_BIN="/usr/local/bin/cbench"  # Path to CBench binary
+OFLOPS_BIN="/usr/local/bin/oflops"  # Path to oflops binary
 FEATURES_FILE=$ODL_DIR/etc/org.apache.karaf.features.cfg  # Karaf features to install
 
 # Array that stores results in indexes defined by cols array
@@ -793,8 +794,10 @@ uninstall_cbench()
         echo "Removing $CBENCH_BIN"
         sudo rm -f $CBENCH_BIN
     fi
-    # TODO: Remove oflops binary
-    # Relevant issue: https://github.com/dfarrell07/wcbench/issues/25
+    if [ -f $OFLOPS_BIN ]; then
+        echo "Removing $OFLOPS_BIN"
+        sudo rm -f $OFLOPS_BIN 
+    fi
 }
 
 # If executed with no options
