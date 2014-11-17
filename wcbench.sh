@@ -439,11 +439,15 @@ run_cbench()
     get_post_test_stats
     get_time_irrelevant_stats
 
-    # Parse out average responses/sec, log/handle very rare unexplained errors
-    # This logic can be removed if/when the root cause of this error is discovered and fixed
+    # Parse out average responses/sec, log/handle errors
+    # See: https://github.com/dfarrell07/wcbench/issues/16
     cbench_avg=`echo "$cbench_output" | grep RESULT | awk '{print $8}' | awk -F'/' '{print $3}'`
     if [ -z "$cbench_avg" ]; then
-        echo "WARNING: Rare error occurred: failed to parse avg. See $CBENCH_LOG." >&2
+        echo "WARNING: Error occurred: Failed to parse CBench average" >&2
+        echo "This is an issue with CBench or ODL, not WCBench." >&2
+        echo "May need to reduce NUM_SWITCHES or allocate more CPU cores" >&2
+        echo "See: $CBENCH_LOG." >&2
+        echo "See: https://github.com/dfarrell07/wcbench/issues/16" >&2
         echo "Run $(next_run_num) failed to record a CBench average. CBench details:" >> $CBENCH_LOG
         echo "$cbench_output" >> $CBENCH_LOG
         return
