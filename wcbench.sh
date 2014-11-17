@@ -827,6 +827,9 @@ if [ $# -eq 0 ]; then
     exit $EX_USAGE
 fi
 
+# Used to output help if no valid action results from arguments
+action_taken=false
+
 # Parse options given from command line
 while getopts ":hvrcip:ot:kd" opt; do
     case "$opt" in
@@ -852,14 +855,17 @@ while getopts ":hvrcip:ot:kd" opt; do
                 fi
             fi
             run_cbench
+            action_taken=true
             ;;
         c)
             # Install CBench
             install_cbench
+            action_taken=true
             ;;
         i)
             # Install OpenDaylight
             install_opendaylight
+            action_taken=true
             ;;
         p)
             # Pin a given number of processors
@@ -881,6 +887,7 @@ while getopts ":hvrcip:ot:kd" opt; do
                 exit $EX_ERR
             fi
             start_opendaylight
+            action_taken=true
             ;;
         t)
             # Set CBench run time in minutes
@@ -905,11 +912,13 @@ while getopts ":hvrcip:ot:kd" opt; do
                 exit $EX_ERR
             fi
             stop_opendaylight
+            action_taken=true
             ;;
         d)
             # Delete local ODL and CBench code
             uninstall_odl
             uninstall_cbench
+            action_taken=true
             ;;
         *)
             # Print usage message
@@ -917,3 +926,9 @@ while getopts ":hvrcip:ot:kd" opt; do
             exit $EX_USAGE
     esac
 done
+
+# Output help message if no valid action was taken
+if ! "$action_taken" = true; then
+    usage
+    exit $EX_USAGE
+fi

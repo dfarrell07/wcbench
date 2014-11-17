@@ -153,6 +153,9 @@ if [ $# -eq 0 ]; then
     exit $EX_USAGE
 fi
 
+# Used to output help if no valid action results from arguments
+action_taken=false
+
 # Parse options given from command line
 while getopts ":hvlp:rt:" opt; do
     case "$opt" in
@@ -168,6 +171,7 @@ while getopts ":hvlp:rt:" opt; do
         l)
             # Loop without restarting ODL between WCBench runs
             loop_no_restart
+            action_taken=true
             ;;
         p)
             # Pin a given number of processors
@@ -181,6 +185,7 @@ while getopts ":hvlp:rt:" opt; do
         r)
             # Restart ODL between each WCBench run
             loop_with_restart
+            action_taken=true
             ;;
         t)
             # Set length of WCBench run in minutes
@@ -192,3 +197,9 @@ while getopts ":hvlp:rt:" opt; do
             exit $EX_USAGE
     esac
 done
+
+# Output help message if no valid action was taken
+if ! "$action_taken" = true; then
+    usage
+    exit $EX_USAGE
+fi
