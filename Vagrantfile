@@ -16,14 +16,5 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     config.vm.synced_folder ".", "/vagrant", disabled: true
     config.vm.synced_folder ".", "/home/vagrant/wcbench"
 
-    # Configuration steps spicific to VM with WCBench
-    config.vm.define "wcbench" do |base|
-        config.vm.provision "shell", inline: "/home/vagrant/wcbench/wcbench.sh -vc"
-    end
-
-    # Configuration steps spicific to VM with OpenDaylight
-    # TODO: Still working on this
-    config.vm.define "odl" do |base|
-        config.vm.provision "shell", inline: "/home/vagrant/wcbench/wcbench.sh -i"
-    end
+    config.vm.provision "shell", inline: 'su -c "/home/vagrant/wcbench/wcbench.sh -vci" vagrant'
 end
