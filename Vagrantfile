@@ -4,6 +4,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     # Build Vagrant box based on Fedora 20
     config.vm.box = "chef/fedora-20"
 
+    # Configure VM RAM and CPU
+    config.vm.provider "virtualbox" do |v|
+      v.memory = 2048
+      v.cpus = 4
+    end
+
     # This allows sudo commands to work
     config.ssh.pty = true
 
