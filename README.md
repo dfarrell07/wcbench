@@ -52,6 +52,7 @@ Run WCBench against OpenDaylight in a loop.
 
 OPTIONS:
     -h Show this help message
+    -v Output verbose debug info
     -l Loop WCBench runs without restarting ODL
     -r Loop WCBench runs, restart ODL between runs
     -t <time> Run WCBench for a given number of minutes
