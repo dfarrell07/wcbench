@@ -577,8 +577,8 @@ install_opendaylight()
     if [ -f $ODL_ZIP_PATH ]; then
         echo "Using local $ODL_ZIP_PATH. Pass -d flag to remove."
     else
-        # Grab last successful build
-        echo "Downloading last successful ODL build"
+        # Grab OpenDaylight Helium
+        echo "Downloading OpenDaylight Helium 0.2.0"
         if "$VERBOSE" = true; then
             wget -P $BASE_DIR "http://nexus.opendaylight.org/content/groups/public/org/opendaylight/integration/distribution-karaf/0.2.0-Helium/$ODL_ZIP"
         else
@@ -593,7 +593,7 @@ install_opendaylight()
     fi
 
     # Unzip ODL archive
-    echo "Unzipping last successful ODL build"
+    echo "Unzipping OpenDaylight Helium 0.2.0"
     if "$VERBOSE" = true; then
         unzip -d $BASE_DIR $ODL_ZIP_PATH
     else
@@ -831,7 +831,7 @@ while getopts ":hvrcip:ot:kd" opt; do
             install_cbench
             ;;
         i)
-            # Install OpenDaylight from last successful build
+            # Install OpenDaylight
             install_opendaylight
             ;;
         p)
@@ -848,7 +848,7 @@ while getopts ":hvrcip:ot:kd" opt; do
             fi
             ;;
         o)
-            # Run OpenDaylight from last successful build
+            # Run OpenDaylight
             if ! odl_installed; then
                 echo "OpenDaylight isn't installed, can't start it"
                 exit $EX_ERR
