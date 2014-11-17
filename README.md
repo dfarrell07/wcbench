@@ -133,7 +133,49 @@ Examples are useful:
 ```
 
 ```
-# Command for graphs of flows/sec and used RAM stats
+# All stats
+./stats.py -S
+{'fifteen_load': {'max': 0,
+                  'mean': 0.62,
+                  'min': 0,
+                  'relstddev': 0.0,
+                  'stddev': 0.0},
+ 'five_load': {'max': 0,
+               'mean': 0.96,
+               'min': 0,
+               'relstddev': 0.0,
+               'stddev': 0.0},
+ 'flows': {'max': 22384,
+           'mean': 22384.52,
+           'min': 22384,
+           'relstddev': 0.0,
+           'stddev': 0.0},
+ 'iowait': {'max': 0, 'mean': 0.0, 'min': 0, 'relstddev': 0.0, 'stddev': 0.0},
+ 'one_load': {'max': 0,
+              'mean': 0.85,
+              'min': 0,
+              'relstddev': 0.0,
+              'stddev': 0.0},
+ 'runtime': {'max': 120,
+             'mean': 120.0,
+             'min': 120,
+             'relstddev': 0.0,
+             'stddev': 0.0},
+ 'sample_size': 1,
+ 'steal_time': {'max': 0,
+                'mean': 0.0,
+                'min': 0,
+                'relstddev': 0.0,
+                'stddev': 0.0},
+ 'used_ram': {'max': 3657,
+              'mean': 3657.0,
+              'min': 3657,
+              'relstddev': 0.0,
+              'stddev': 0.0}}
+```
+
+```
+# Create graphs of flows/sec and used RAM stats
 ./stats.py -g flows ram
 ```
 
@@ -252,6 +294,23 @@ RESULTS_FILE=$BASE_DIR/wcbench/"results.csv"
 ```
 
 You can now generate graphs and stats, as described in the [Usage Details: stats.py](#user-content-usage-details-statspy) section.
+
+To run long batches of tests, use `loop_wcbench.sh`, as described in [Usage Details: loop_wcbench.sh](#user-content-usage-details-loop_wcbenchsh).
+
+Once you're done, you can kill OpenDaylight like this:
+
+```
+[vagrant@localhost wcbench]$ ./wcbench.sh -k
+Stopping OpenDaylight
+```
+
+Unless you want a fresh WCBench Vagrant box, you can save yourself some time at your next `vagrant up` by suspending (instead of destroying) the box:
+
+```
+# On my local system
+[~/wcbench]$ vagrant suspend
+==> default: Saving VM state and suspending execution...
+```
 
 ### Detailed Walkthrough: Manual
 
@@ -382,48 +441,7 @@ I suggest copying your results.csv file back to your local system for analysis, 
 [~/wcbench]$ rsync wcbench:/home/fedora/results.csv .
 ```
 
-You can now run `stats.py` against it:
-
-```
-[~/wcbench]$ ./stats.py -S
-{'fifteen_load': {'max': 0,
-                  'mean': 0.62,
-                  'min': 0,
-                  'relstddev': 0.0,
-                  'stddev': 0.0},
- 'five_load': {'max': 0,
-               'mean': 0.96,
-               'min': 0,
-               'relstddev': 0.0,
-               'stddev': 0.0},
- 'flows': {'max': 22384,
-           'mean': 22384.52,
-           'min': 22384,
-           'relstddev': 0.0,
-           'stddev': 0.0},
- 'iowait': {'max': 0, 'mean': 0.0, 'min': 0, 'relstddev': 0.0, 'stddev': 0.0},
- 'one_load': {'max': 0,
-              'mean': 0.85,
-              'min': 0,
-              'relstddev': 0.0,
-              'stddev': 0.0},
- 'runtime': {'max': 120,
-             'mean': 120.0,
-             'min': 120,
-             'relstddev': 0.0,
-             'stddev': 0.0},
- 'sample_size': 1,
- 'steal_time': {'max': 0,
-                'mean': 0.0,
-                'min': 0,
-                'relstddev': 0.0,
-                'stddev': 0.0},
- 'used_ram': {'max': 3657,
-              'mean': 3657.0,
-              'min': 3657,
-              'relstddev': 0.0,
-              'stddev': 0.0}}
-```
+You can now generate graphs and stats, as described in the [Usage Details: stats.py](#user-content-usage-details-statspy) section.
 
 If you'd like to collect some serious long-term data, use the `loop_wcbench.sh` script (of course, back on the VM).
 
