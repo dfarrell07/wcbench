@@ -38,9 +38,9 @@ OPTIONS:
     -c Install CBench
     -t <time> Run CBench for given number of minutes
     -r Run CBench against OpenDaylight
-    -i Install OpenDaylight Helium
+    -i Install OpenDaylight Helium 0.2.1
     -p <processors> Pin ODL to given number of processors
-    -o Start and configure OpenDaylight Helium
+    -o Start and configure OpenDaylight Helium 0.2.1
     -k Kill OpenDaylight
     -d Delete local ODL and CBench code
 ```
@@ -383,8 +383,8 @@ Building CBench
 CBench is installed
 Successfully installed CBench
 Installing OpenDaylight dependencies
-Downloading OpenDaylight Helium 0.2.0
-Unzipping OpenDaylight Helium 0.2.0
+Downloading OpenDaylight Helium 0.2.1
+Unzipping OpenDaylight Helium 0.2.1
 odl-openflowplugin-flow-services added to features installed at boot
 odl-openflowplugin-drop-test added to features installed at boot
 ```
@@ -449,8 +449,8 @@ Once you're done, you can stop ODL and clean up the CBench and ODL source/binari
 [fedora@dfarrell-wcbench wcbench]$ ./wcbench.sh -k
 Stopping OpenDaylight
 [fedora@dfarrell-wcbench wcbench]$ ./wcbench.sh -d
-Removing /home/fedora/distribution-karaf-0.2.0-Helium
-Removing /home/fedora/distribution-karaf-0.2.0-Helium.zip
+Removing /home/fedora/distribution-karaf-0.2.1-Helium-SR1
+Removing /home/fedora/distribution-karaf-0.2.1-Helium-SR1.zip
 Removing /home/fedora/openflow
 Removing /home/fedora/oflops
 Removing /usr/local/bin/cbench

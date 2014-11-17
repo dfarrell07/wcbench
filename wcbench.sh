@@ -34,8 +34,8 @@ SSH_HOSTNAME="cbenchc"  # You'll need to update this to reflect ~/.ssh/config
 BASE_DIR=$HOME  # Directory that code and such is dropped into
 OF_DIR=$BASE_DIR/openflow  # Directory that contains OpenFlow code
 OFLOPS_DIR=$BASE_DIR/oflops  # Directory that contains oflops repo
-ODL_DIR=$BASE_DIR/distribution-karaf-0.2.0-Helium  # Directory with ODL code
-ODL_ZIP="distribution-karaf-0.2.0-Helium.zip"  # ODL zip name
+ODL_DIR=$BASE_DIR/distribution-karaf-0.2.1-Helium-SR1  # Directory with ODL code
+ODL_ZIP="distribution-karaf-0.2.1-Helium-SR1.zip"  # ODL zip name
 ODL_ZIP_PATH=$BASE_DIR/$ODL_ZIP  # Full path to ODL zip
 PLUGIN_DIR=$ODL_DIR/plugins  # ODL plugin directory
 RESULTS_FILE=$BASE_DIR/"results.csv"  # File that results are stored in
@@ -102,9 +102,9 @@ OPTIONS:
     -c Install CBench
     -t <time> Run CBench for given number of minutes
     -r Run CBench against OpenDaylight
-    -i Install OpenDaylight Helium
+    -i Install OpenDaylight Helium 0.2.1
     -p <processors> Pin ODL to given number of processors
-    -o Start and configure OpenDaylight Helium
+    -o Start and configure OpenDaylight Helium 0.2.1
     -k Kill OpenDaylight
     -d Delete local ODL and CBench code
 EOF
@@ -446,7 +446,7 @@ run_cbench()
         echo "WARNING: Error occurred: Failed to parse CBench average" >&2
         echo "This is an issue with CBench or ODL, not WCBench." >&2
         echo "May need to reduce NUM_SWITCHES or allocate more CPU cores" >&2
-        echo "See: $CBENCH_LOG." >&2
+        echo "See: $CBENCH_LOG" >&2
         echo "See: https://github.com/dfarrell07/wcbench/issues/16" >&2
         echo "Run $(next_run_num) failed to record a CBench average. CBench details:" >> $CBENCH_LOG
         echo "$cbench_output" >> $CBENCH_LOG
@@ -577,12 +577,12 @@ install_opendaylight()
     if [ -f $ODL_ZIP_PATH ]; then
         echo "Using local $ODL_ZIP_PATH. Pass -d flag to remove."
     else
-        # Grab OpenDaylight Helium
-        echo "Downloading OpenDaylight Helium 0.2.0"
+        # Grab OpenDaylight Helium 0.2.1
+        echo "Downloading OpenDaylight Helium 0.2.1"
         if "$VERBOSE" = true; then
-            wget -P $BASE_DIR "http://nexus.opendaylight.org/content/groups/public/org/opendaylight/integration/distribution-karaf/0.2.0-Helium/$ODL_ZIP"
+            wget -P $BASE_DIR "https://nexus.opendaylight.org/content/groups/public/org/opendaylight/integration/distribution-karaf/0.2.1-Helium-SR1/$ODL_ZIP"
         else
-            wget -P $BASE_DIR "http://nexus.opendaylight.org/content/groups/public/org/opendaylight/integration/distribution-karaf/0.2.0-Helium/$ODL_ZIP" &> /dev/null
+            wget -P $BASE_DIR "https://nexus.opendaylight.org/content/groups/public/org/opendaylight/integration/distribution-karaf/0.2.1-Helium-SR1/$ODL_ZIP" &> /dev/null
         fi
     fi
 
@@ -593,7 +593,7 @@ install_opendaylight()
     fi
 
     # Unzip ODL archive
-    echo "Unzipping OpenDaylight Helium 0.2.0"
+    echo "Unzipping OpenDaylight Helium 0.2.1"
     if "$VERBOSE" = true; then
         unzip -d $BASE_DIR $ODL_ZIP_PATH
     else
