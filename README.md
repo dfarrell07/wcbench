@@ -246,21 +246,9 @@ WCBench, OpenDaylight and CBench are already installed and configured. You can s
 [vagrant@localhost ~]$ cd wcbench/
 [vagrant@localhost wcbench]$ ./wcbench.sh -o
 Starting OpenDaylight
-Giving ODL 90 seconds to get up and running
-80 seconds remaining
-70 seconds remaining
-60 seconds remaining
-50 seconds remaining
-40 seconds remaining
-30 seconds remaining
-20 seconds remaining
-10 seconds remaining
-0 seconds remaining
-Issuing `dropAllPacketsRpc on` command via Karaf shell to localhost:8101
-Warning: Permanently added '[localhost]:8101' (DSA) to the list of known hosts.
-Authenticated with partial success.
-Password authentication
-DropAllFlows transitions to on
+Will repeatedly attempt connecting to Karaf shell until it's ready
+Issued `dropAllPacketsRpc on` command via Karaf shell to localhost:8101
+Issued `log:set ERROR` command via Karaf shell to localhost:8101
 ```
 
 Run CBench against OpenDaylight like this:
@@ -396,21 +384,9 @@ You're ready to get started using WCBench. You can start ODL like this:
 ```
 [fedora@dfarrell-wcbench wcbench]$ ./wcbench.sh -o
 Starting OpenDaylight
-Giving ODL 90 seconds to get up and running
-80 seconds remaining
-70 seconds remaining
-60 seconds remaining
-50 seconds remaining
-40 seconds remaining
-30 seconds remaining
-20 seconds remaining
-10 seconds remaining
-0 seconds remaining
-Issuing `dropAllPacketsRpc on` command via Karaf shell to localhost:8101
-Warning: Permanently added '[localhost]:8101' (DSA) to the list of known hosts.
-Authenticated with partial success.
-Password authentication
-DropAllFlows transitions to on
+Will repeatedly attempt connecting to Karaf shell until it's ready
+Issued `dropAllPacketsRpc on` command via Karaf shell to localhost:8101
+Issued `log:set ERROR` command via Karaf shell to localhost:8101
 ```
 
 Here's an example of running a two minute CBench test against OpenDaylight:
