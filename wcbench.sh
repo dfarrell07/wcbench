@@ -18,12 +18,12 @@ EX_ERR=1
 VERBOSE=false
 
 # Params for CBench test and ODL config
-NUM_SWITCHES=64  # Default number of switches for CBench to simulate
+NUM_SWITCHES=32 # Default number of switches for CBench to simulate
 NUM_MACS=100000  # Default number of MACs for CBench to use
 TESTS_PER_SWITCH=10  # Default number of CBench tests to do per CBench run
 MS_PER_TEST=10000  # Default milliseconds to run each CBench test
 CBENCH_WARMUP=1  # Default number of warmup cycles to run CBench
-KARAF_SHELL_PORT=8101 # Port that the Karaf shell listens on
+KARAF_SHELL_PORT=8101  # Port that the Karaf shell listens on
 ODL_STARTUP_DELAY=90  # Default time in seconds to give ODL to start
 CONTROLLER="OpenDaylight"  # Currently only support ODL
 CONTROLLER_IP="localhost"  # Change this to remote IP if running on two systems
