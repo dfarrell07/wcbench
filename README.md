@@ -245,11 +245,6 @@ WCBench, OpenDaylight and CBench are already installed and configured. You can s
 ```
 [vagrant@localhost ~]$ cd wcbench/
 [vagrant@localhost wcbench]$ ./wcbench.sh -o
-OpenDaylight is already running
-[vagrant@localhost wcbench]$ ./wcbench.sh -^C
-[vagrant@localhost wcbench]$ ./wcbench.sh -k
-Stopping OpenDaylight
-[vagrant@localhost wcbench]$ ./wcbench.sh -o
 Starting OpenDaylight
 Giving ODL 90 seconds to get up and running
 80 seconds remaining
@@ -279,7 +274,7 @@ Collecting time-irrelevant stats
 Average responses/second: 29486.95
 ```
 
-Since the WCBench Vagrant box is headless, you'll want to move the `results.txt` to a server with a GUI for graphing.
+Since the WCBench Vagrant box is headless, you'll want to move the `results.txt` to a system with a GUI for graphing.
 
 Vagrant hard-links `/home/vagrant/wcbench/` to the directory on your local system that contains WCBench's Vagrantfile. Dropping `results.txt` in `/home/vagrant/wcbench/` will therefore move it to your local system for analysis. You can also modify the `RESULTS_FILE` variable in `wcbench.sh` to point at `/home/vagrant/wcbench/`, if you'd like to put it there by default.
 
@@ -381,18 +376,17 @@ Huzzah! You now have WCBench "installed" on your VM. Now, to install CBench and 
 [fedora@dfarrell-wcbench wcbench]$ ./wcbench.sh -ci
 CBench is not installed
 Installing CBench dependencies
-Cloning CBench repo
-Cloning openflow source code
+Cloning CBench repo into /home/fedora/oflops
+Cloning openflow source code into /home/fedora/openflow
 Building oflops/configure file
 Building CBench
 CBench is installed
 Successfully installed CBench
 Installing OpenDaylight dependencies
-Downloading last successful ODL build
-Unzipping last successful ODL build
-Downloading openflowplugin
-Removing simpleforwarding plugin
-Removing arphandler plugin
+Downloading OpenDaylight Helium 0.2.0
+Unzipping OpenDaylight Helium 0.2.0
+odl-openflowplugin-flow-services added to features installed at boot
+odl-openflowplugin-drop-test added to features installed at boot
 ```
 
 Huzzah! You now have CBench and OpenDaylight installed/configured.
@@ -412,14 +406,11 @@ Giving ODL 90 seconds to get up and running
 20 seconds remaining
 10 seconds remaining
 0 seconds remaining
-Installing telnet, as it's required for issuing ODL config.
-Issuing `dropAllPacketsRpc on` command via telnet to localhost:2400
-Trying ::1...
-Connected to localhost.
-Escape character is '^]'.
-osgi> dropAllPacketsRpc on
+Issuing `dropAllPacketsRpc on` command via Karaf shell to localhost:8101
+Warning: Permanently added '[localhost]:8101' (DSA) to the list of known hosts.
+Authenticated with partial success.
+Password authentication
 DropAllFlows transitions to on
-osgi> Connection closed by foreign host.
 ```
 
 Here's an example of running a two minute CBench test against OpenDaylight:
@@ -458,8 +449,8 @@ Once you're done, you can stop ODL and clean up the CBench and ODL source/binari
 [fedora@dfarrell-wcbench wcbench]$ ./wcbench.sh -k
 Stopping OpenDaylight
 [fedora@dfarrell-wcbench wcbench]$ ./wcbench.sh -d
-Removing /home/fedora/opendaylight
-Removing /home/fedora/distributions-base-0.2.0-SNAPSHOT-osgipackage.zip
+Removing /home/fedora/distribution-karaf-0.2.0-Helium
+Removing /home/fedora/distribution-karaf-0.2.0-Helium.zip
 Removing /home/fedora/openflow
 Removing /home/fedora/oflops
 Removing /usr/local/bin/cbench
