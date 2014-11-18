@@ -154,9 +154,9 @@ class Stats(object):
     def build_runtime_graph(self, total_gcount, graph_num):
         """Plot CBench runtime length data.
 
-        :paruntime total_gcount: Total number of graphs to render.
+        :param total_gcount: Total number of graphs to render.
         :type total_gcount: int
-        :paruntime graph_num: Number for this graph, <= total_gcount.
+        :param graph_num: Number for this graph, <= total_gcount.
         :type graph_num: int
 
         """
@@ -170,9 +170,9 @@ class Stats(object):
     def build_iowait_graph(self, total_gcount, graph_num):
         """Plot iowait data.
 
-        :paiowait total_gcount: Total number of graphs to render.
+        :param total_gcount: Total number of graphs to render.
         :type total_gcount: int
-        :paiowait graph_num: Number for this graph, <= total_gcount.
+        :param graph_num: Number for this graph, <= total_gcount.
         :type graph_num: int
 
         """
@@ -186,9 +186,9 @@ class Stats(object):
     def build_steal_time_graph(self, total_gcount, graph_num):
         """Plot steal time data.
 
-        :pasteal_time total_gcount: Total number of graphs to render.
+        :param total_gcount: Total number of graphs to render.
         :type total_gcount: int
-        :pasteal_time graph_num: Number for this graph, <= total_gcount.
+        :param graph_num: Number for this graph, <= total_gcount.
         :type graph_num: int
 
         """
@@ -202,9 +202,9 @@ class Stats(object):
     def build_one_load_graph(self, total_gcount, graph_num):
         """Plot one minute load data.
 
-        :paone_load total_gcount: Total number of graphs to render.
+        :param total_gcount: Total number of graphs to render.
         :type total_gcount: int
-        :paone_load graph_num: Number for this graph, <= total_gcount.
+        :param graph_num: Number for this graph, <= total_gcount.
         :type graph_num: int
 
         """
@@ -218,9 +218,9 @@ class Stats(object):
     def build_five_load_graph(self, total_gcount, graph_num):
         """Plot five minute load data.
 
-        :pafive_load total_gcount: Total number of graphs to render.
+        :param total_gcount: Total number of graphs to render.
         :type total_gcount: int
-        :pafive_load graph_num: Number for this graph, <= total_gcount.
+        :param graph_num: Number for this graph, <= total_gcount.
         :type graph_num: int
 
         """
@@ -234,9 +234,9 @@ class Stats(object):
     def build_fifteen_load_graph(self, total_gcount, graph_num):
         """Plot fifteen minute load data.
 
-        :pafifteen_load total_gcount: Total number of graphs to render.
+        :param total_gcount: Total number of graphs to render.
         :type total_gcount: int
-        :pafifteen_load graph_num: Number for this graph, <= total_gcount.
+        :param graph_num: Number for this graph, <= total_gcount.
         :type graph_num: int
 
         """
@@ -261,9 +261,9 @@ class Stats(object):
     def build_generic_graph(self, total_gcount, graph_num, y_label, data_col):
         """Helper for plotting generic data.
 
-        :pageneric total_gcount: Total number of graphs to render.
+        :param total_gcount: Total number of graphs to render.
         :type total_gcount: int
-        :pageneric graph_num: Number for this graph, <= total_gcount.
+        :param graph_num: Number for this graph, <= total_gcount.
         :type graph_num: int
         :param y_label: Lable of Y axis.
         :type y_label: string
