@@ -47,10 +47,11 @@ FEATURES_FILE=$ODL_DIR/etc/org.apache.karaf.features.cfg  # Karaf features to in
 declare -a results
 
 # The order of these array values determines column order in RESULTS_FILE
-cols=(run_num cbench_avg start_time end_time controller_ip human_time
-    num_switches num_macs tests_per_switch ms_per_test start_steal_time
-    end_steal_time total_ram used_ram free_ram cpus one_min_load five_min_load
-    fifteen_min_load controller start_iowait end_iowait)
+cols=(run_num cbench_min cbench_max cbench_avg start_time end_time
+    controller_ip human_time num_switches num_macs tests_per_switch
+    ms_per_test start_steal_time end_steal_time total_ram used_ram
+    free_ram cpus one_min_load five_min_load fifteen_min_load controller
+    start_iowait end_iowait)
 
 # This two-stat-array system is needed until I find an answer to this question:
 # http://goo.gl/e0M8Tp
@@ -439,8 +440,10 @@ run_cbench()
     get_post_test_stats
     get_time_irrelevant_stats
 
-    # Parse out average responses/sec, log/handle errors
+    # Parse out min, max and average responses/sec, log/handle errors
     # See: https://github.com/dfarrell07/wcbench/issues/16
+    cbench_min=`echo "$cbench_output" | grep RESULT | awk '{print $8}' | awk -F'/' '{print $1}'`
+    cbench_max=`echo "$cbench_output" | grep RESULT | awk '{print $8}' | awk -F'/' '{print $2}'`
     cbench_avg=`echo "$cbench_output" | grep RESULT | awk '{print $8}' | awk -F'/' '{print $3}'`
     if [ -z "$cbench_avg" ]; then
         echo "WARNING: Error occurred: Failed to parse CBench average" >&2
@@ -453,6 +456,8 @@ run_cbench()
         return
     else
         echo "Average responses/second: $cbench_avg"
+        results[$(name_to_index "cbench_min")]=$cbench_min
+        results[$(name_to_index "cbench_max")]=$cbench_max
         results[$(name_to_index "cbench_avg")]=$cbench_avg
     fi
 
