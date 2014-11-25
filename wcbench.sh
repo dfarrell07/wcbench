@@ -411,7 +411,7 @@ write_results()
 }
 
 ###############################################################################
-# Runs the CBench against the controller
+# Runs CBench against the controller
 # Globals:
 #   CONTROLLER_IP
 #   CONTROLLER_PORT
