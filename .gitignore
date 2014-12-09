@@ -3,5 +3,6 @@
 *.swn
 *.swm
 *.csv
+*.log
 logs/
 .vagrant
