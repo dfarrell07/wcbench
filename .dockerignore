@@ -1,0 +1,9 @@
+*.swp
+*.swo
+*.swn
+*.swm
+*.csv
+*.log
+logs/
+.vagrant
+.git
