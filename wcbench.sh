@@ -703,7 +703,7 @@ start_opendaylight()
 }
 
 ###############################################################################
-# Set `dropAllPackets on` and log level to DEBUG via Karaf shell
+# Set `dropAllPackets on` and log level to ERROR via Karaf shell
 # Globals:
 #   VERBOSE
 #   KARAF_SHELL_PORT
