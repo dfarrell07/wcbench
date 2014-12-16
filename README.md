@@ -99,7 +99,7 @@ As you likely know, `ssh-copy-id` can help you setup your system to connect with
 * Trivially installing/configuring ODL from the last successful build (via an Integration team Jenkins job).
 * Pinning the OpenDaylight process to a given number of CPU cores. This is useful for ensuring that ODL is properly pegged, working as hard as it can with given resource limits. It can also expose bad ODL behavior that comes about when the process is pegged.
 * Running OpenDaylight and issuing all of the required configurations.
-* Stopping the OpenDaylight process. This is done cleanly via the `run.sh` script, not `kill` or `pkill`.
+* Stopping the OpenDaylight process. This is done cleanly via the `./bin/stop` script, not `kill` or `pkill`.
 * Cleaning up everything changed by the `wcbench.sh` script, including deleting ODL and CBench sources and binaries.
 
 
