@@ -730,7 +730,7 @@ issue_odl_config()
     # Exit status 255 means Karaf shell isn't open for SSH connections yet
     # Exit status 1 means `dropAllPacketsRpc on` isn't runnable yet
     if "$VERBOSE" = true; then
-        until sshpass -p karaf ssh -p $KARAF_SHELL_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no karaf@localhost dropallpacketsrpc on
+        until sshpass -p karaf ssh -p $KARAF_SHELL_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o PreferredAuthentications=password karaf@localhost dropallpacketsrpc on
         do
             echo "Karaf shell isn't ready yet, sleeping 5 seconds..."
             sleep 5
