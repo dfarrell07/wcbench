@@ -25,7 +25,7 @@ MS_PER_TEST=10000  # Default milliseconds to run each CBench test
 CBENCH_WARMUP=1  # Default number of warmup cycles to run CBench
 KARAF_SHELL_PORT=8101  # Port that the Karaf shell listens on
 CONTROLLER="OpenDaylight"  # Currently only support ODL
-CONTROLLER_IP="localhost"  # Change this to remote IP if running on two systems
+CONTROLLER_IP="localhost"  # Change to remote IP if Dockerized/ODL is remote
 CONTROLLER_PORT=6633  # Default port for OpenDaylight
 SSH_HOSTNAME="cbenchc"  # You'll need to update this to reflect ~/.ssh/config
 
@@ -106,7 +106,6 @@ OPTIONS:
     -i Install OpenDaylight Helium 0.2.1
     -p <processors> Pin ODL to given number of processors
     -o Start and configure OpenDaylight Helium 0.2.1
-    -D Assume running against Dockerized ODL
     -k Kill OpenDaylight
     -d Delete local ODL and CBench code
 EOF
@@ -836,11 +835,8 @@ fi
 # Used to output help if no valid action results from arguments
 action_taken=false
 
-# Used for skipping/modifying odl_started/odl_installed checks
-dockerized_run=false
-
 # Parse options given from command line
-while getopts ":hvrcip:ot:kdD" opt; do
+while getopts ":hvrcip:ot:kd" opt; do
     case "$opt" in
         h)
             # Help message
@@ -853,9 +849,7 @@ while getopts ":hvrcip:ot:kdD" opt; do
             ;;
         r)
             # Run CBench against OpenDaylight
-            if "$dockerized_run" = true; then
-                echo "Assuming running against Dockerized ODL."
-            elif [ $CONTROLLER_IP = "localhost" ]; then
+            if [ $CONTROLLER_IP = "localhost" ]; then
                 if ! odl_installed; then
                     echo "OpenDaylight isn't installed, can't run test"
                     exit $EX_ERR
@@ -930,10 +924,6 @@ while getopts ":hvrcip:ot:kdD" opt; do
             uninstall_odl
             uninstall_cbench
             action_taken=true
-            ;;
-        D)
-            # Running against Dockerized ODL
-            dockerized_run=true
             ;;
         *)
             # Print usage message
