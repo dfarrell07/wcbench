@@ -6,3 +6,4 @@
 *.log
 logs/
 .vagrant
+Gemfile.lock
