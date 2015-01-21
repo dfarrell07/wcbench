@@ -25,6 +25,20 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     config.vm.synced_folder ".", "/vagrant", disabled: true
     config.vm.synced_folder ".", "/home/vagrant/wcbench"
 
+    # Install Puppet
+    config.vm.provision "shell", :inline => <<-SHELL
+        yum update -y
+        yum install -y puppet
+    SHELL
+
+    # Install OpenDaylight using its Puppet module
+    config.vm.provision "puppet" do |puppet|
+        # These are all default settings, just stating explicitly for clarity
+        puppet.module_path = ["modules"]
+        puppet.manifest_file = "default.pp"
+        puppet.manifests_path = "manifests"
+    end
+
     # Install OpenDaylight and CBench with verbose output
-    config.vm.provision "shell", inline: 'su -c "/home/vagrant/wcbench/wcbench.sh -vci" vagrant'
+    #config.vm.provision "shell", inline: 'su -c "/home/vagrant/wcbench/wcbench.sh -vc" vagrant'
 end
