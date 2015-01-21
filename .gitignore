@@ -7,3 +7,7 @@
 logs/
 .vagrant
 Gemfile.lock
+.tmp/
+modules/
+.librarian
+Puppetfile.lock
