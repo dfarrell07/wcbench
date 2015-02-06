@@ -1,5 +1,7 @@
 ## Wrapped CBench (WCBench)
 
+[![Join the chat at https://gitter.im/dfarrell07/wcbench](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/dfarrell07/wcbench?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 CBench, wrapped in stuff that makes it useful.
 
 - [Wrapped CBench (WCBench)](#user-content-wrapped-cbench-wcbench)
