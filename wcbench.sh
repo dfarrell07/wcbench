@@ -547,8 +547,7 @@ add_to_featuresBoot()
 }
 
 ###############################################################################
-# Installs latest build of the OpenDaylight controller
-# Note that the installed build is via an Integration team Jenkins job
+# Installs version 0.2.1 SR1 of the OpenDaylight SDN controller
 # Globals:
 #   ODL_DIR
 #   VERBOSE
