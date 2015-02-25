@@ -327,7 +327,7 @@ get_post_test_stats()
     # Start by collecting always-local stats that are time-sensitive
     echo "Collecting post-test stats"
     results[$(name_to_index "end_time")]=`date +%s`
-    results[$(name_to_index "human_time")]=`date`
+    results[$(name_to_index "human_time")]=`date +"%F %T %Y %Z"`
 
     # Now collect local/remote stats that are time-sensative
     if [ $CONTROLLER_IP = "localhost" ]; then
