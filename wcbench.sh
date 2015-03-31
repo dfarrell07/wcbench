@@ -448,6 +448,7 @@ run_cbench()
     if [ -z "$cbench_avg" ]; then
         echo "WARNING: Error occurred: Failed to parse CBench average" >&2
         echo "This is an issue with CBench or ODL, not WCBench." >&2
+        echo "May need to kill/restart ODL" >&2
         echo "May need to reduce NUM_SWITCHES or allocate more CPU cores" >&2
         echo "See: $CBENCH_LOG" >&2
         echo "See: https://github.com/dfarrell07/wcbench/issues/16" >&2
