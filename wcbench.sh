@@ -30,7 +30,7 @@ CONTROLLER_PORT=6633  # Default port for OpenDaylight
 SSH_HOSTNAME="controller1"  # You'll need to update this to reflect ~/.ssh/config
 
 # Paths used in this script
-BASE_DIR=$HOME/wcbench_ubuntu  # Directory that code and such is dropped into
+BASE_DIR=$HOME/wcbench  # Directory that code and such is dropped into
 OF_DIR=$BASE_DIR/openflow  # Directory that contains OpenFlow code
 OFLOPS_DIR=$BASE_DIR/oflops  # Directory that contains oflops repo
 ODL_DIR=$BASE_DIR/distribution-karaf-0.2.1-Helium-SR1  # Directory with ODL code Helium version SR3
