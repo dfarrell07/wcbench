@@ -21,7 +21,7 @@ CBench is a somewhat classic SDN controller benchmark tool. It blasts a controll
 
 WCBench currently only supports the Helium release of the OpenDaylight SDN controller, but it would be fairly easy to add support for other controllers. Community contributions are encouraged!
 
-Thsi is the Ubuntu version of wcbench. It will create a "wcbench" directory at the location you are cloning this repository. It will then install cbench and download OpenDayLight in the same folder.
+This is the Ubuntu version of wcbench. It will create a "wcbench" directory at the location you are cloning this repository. It will then install cbench and download OpenDayLight in the same folder.
 
 ### Usage
 
