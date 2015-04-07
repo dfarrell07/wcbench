@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/bin/bash
 # Main WCBench script. WCBench wraps CBench in stuff to make it useful.
 # This script supports installing ODL, installing CBench, starting and
 # configuring ODL, running CBench against ODL, pinning ODL to a given
@@ -15,10 +15,10 @@ EX_OK=0
 EX_ERR=1
 
 # Output verbose debug info (true) or not (anything else)
-VERBOSE=false
+VERBOSE= true
 
 # Params for CBench test and ODL config
-NUM_SWITCHES=32 # Default number of switches for CBench to simulate
+NUM_SWITCHES=16 # Default number of switches for CBench to simulate
 NUM_MACS=100000  # Default number of MACs for CBench to use
 TESTS_PER_SWITCH=10  # Default number of CBench tests to do per CBench run
 MS_PER_TEST=10000  # Default milliseconds to run each CBench test
@@ -27,13 +27,13 @@ KARAF_SHELL_PORT=8101  # Port that the Karaf shell listens on
 CONTROLLER="OpenDaylight"  # Currently only support ODL
 CONTROLLER_IP="localhost"  # Change this to remote IP if running on two systems
 CONTROLLER_PORT=6633  # Default port for OpenDaylight
-SSH_HOSTNAME="cbenchc"  # You'll need to update this to reflect ~/.ssh/config
+SSH_HOSTNAME="controller1"  # You'll need to update this to reflect ~/.ssh/config
 
 # Paths used in this script
-BASE_DIR=$HOME  # Directory that code and such is dropped into
+BASE_DIR=$HOME/wcbench_ubuntu  # Directory that code and such is dropped into
 OF_DIR=$BASE_DIR/openflow  # Directory that contains OpenFlow code
 OFLOPS_DIR=$BASE_DIR/oflops  # Directory that contains oflops repo
-ODL_DIR=$BASE_DIR/distribution-karaf-0.2.1-Helium-SR1  # Directory with ODL code
+ODL_DIR=$BASE_DIR/distribution-karaf-0.2.1-Helium-SR1  # Directory with ODL code Helium version SR3
 ODL_ZIP="distribution-karaf-0.2.1-Helium-SR1.zip"  # ODL zip name
 ODL_ZIP_PATH=$BASE_DIR/$ODL_ZIP  # Full path to ODL zip
 PLUGIN_DIR=$ODL_DIR/plugins  # ODL plugin directory
@@ -160,9 +160,9 @@ install_cbench()
     # Install required packages
     echo "Installing CBench dependencies"
     if "$VERBOSE" = true; then
-        sudo yum install -y net-snmp-devel libpcap-devel autoconf make automake libtool libconfig-devel git
+        sudo apt-get install libsnmp-dev libpcap-dev autoconf make automake libtool libconfig8-dev git
     else
-        sudo yum install -y net-snmp-devel libpcap-devel autoconf make automake libtool libconfig-devel git &> /dev/null
+        sudo apt-get install libsnmp-dev libpcap-dev autoconf make automake libtool libconfig8-dev git &> /dev/null
     fi
 
     # Clone repo that contains CBench
@@ -467,7 +467,7 @@ run_cbench()
 }
 
 ###############################################################################
-# Deletes OpenDaylight source (zipped and unzipped)
+# Deletes OpenDaylight source (unzipped so that every time a zipped file isnt downloaded.)
 # Globals:
 #   ODL_DIR
 #   ODL_ZIP_PATH
@@ -480,11 +480,11 @@ uninstall_odl()
 {
     if [ -d $ODL_DIR ]; then
         echo "Removing $ODL_DIR"
-        rm -rf $ODL_DIR
+        sudo rm -rf $ODL_DIR
     fi
     if [ -f $ODL_ZIP_PATH ]; then
         echo "Removing $ODL_ZIP_PATH"
-        rm -f $ODL_ZIP_PATH
+        sudo rm -rf $ODL_ZIP_PATH
     fi
 }
 
@@ -566,16 +566,16 @@ install_opendaylight()
 {
     # Only remove unzipped code, as zip is large and unlikely to have changed.
     if [ -d $ODL_DIR ]; then
-        echo "Removing $ODL_DIR"
-        rm -rf $ODL_DIR
+         echo "Removing $ODL_DIR"
+         sudo rm -rf $ODL_DIR
     fi
 
     # Install required packages
     echo "Installing OpenDaylight dependencies"
     if "$VERBOSE" = true; then
-        sudo yum install -y java-1.7.0-openjdk unzip wget
+        sudo apt-get install java-1.7.0-openjdk unzip wget
     else
-        sudo yum install -y java-1.7.0-openjdk unzip wget &> /dev/null
+        sudo apt-get install java-1.7.0-openjdk unzip wget &> /dev/null
     fi
 
     # If we already have the zip archive, use that.
@@ -584,12 +584,13 @@ install_opendaylight()
     else
         # Grab OpenDaylight Helium 0.2.1
         echo "Downloading OpenDaylight Helium 0.2.1"
-        if "$VERBOSE" = true; then
-            wget -P $BASE_DIR "https://nexus.opendaylight.org/content/groups/public/org/opendaylight/integration/distribution-karaf/0.2.1-Helium-SR1/$ODL_ZIP"
-        else
-            wget -P $BASE_DIR "https://nexus.opendaylight.org/content/groups/public/org/opendaylight/integration/distribution-karaf/0.2.1-Helium-SR1/$ODL_ZIP" &> /dev/null
-        fi
+            if "$VERBOSE" = true; then
+                wget -P $BASE_DIR "https://nexus.opendaylight.org/content/groups/public/org/opendaylight/integration/distribution-karaf/0.2.1-Helium-SR1/distribution-karaf-0.2.1-Helium-SR1.zip"
+            else
+                wget -P $BASE_DIR "https://nexus.opendaylight.org/content/groups/public/org/opendaylight/integration/distribution-karaf/0.2.1-Helium-SR1/distribution-karaf-0.2.1-Helium-SR1.zip" &> /dev/null
+            fi
     fi
+      
 
     # Confirm that download was successful
     if [ ! -f $ODL_ZIP_PATH ]; then
@@ -600,11 +601,10 @@ install_opendaylight()
     # Unzip ODL archive
     echo "Unzipping OpenDaylight Helium 0.2.1"
     if "$VERBOSE" = true; then
-        unzip -d $BASE_DIR $ODL_ZIP_PATH
+        unzip $ODL_ZIP_PATH -d $BASE_DIR
     else
-        unzip -d $BASE_DIR $ODL_ZIP_PATH &> /dev/null
+        unzip $ODL_ZIP_PATH -d $BASE_DIR &> /dev/null
     fi
-
     # Add required features to list installed by Karaf at ODL boot
     add_to_featuresBoot "odl-openflowplugin-flow-services"
     add_to_featuresBoot "odl-openflowplugin-drop-test"
@@ -684,17 +684,17 @@ start_opendaylight()
         echo "Starting OpenDaylight"
         if [ -z $processors ]; then
             if "$VERBOSE" = true; then
-                ./bin/start
+                sudo ./bin/start
             else
-                ./bin/start &> /dev/null
+                sudo ./bin/start &> /dev/null
             fi
         else
             echo "Pinning ODL to $processors processor(s)"
             # Use taskset to pin ODL to a given number of processors
             if "$VERBOSE" = true; then
-                taskset -c 0-$(expr $processors - 1) ./bin/start
+                taskset -c 0-$(expr $processors - 1) ./bin/karaf
             else
-                taskset -c 0-$(expr $processors - 1) ./bin/start  &> /dev/null
+                taskset -c 0-$(expr $processors - 1) ./bin/karaf  &> /dev/null
             fi
         fi
     fi
@@ -718,9 +718,9 @@ issue_odl_config()
     if ! command -v sshpass &> /dev/null; then
         echo "Installing sshpass. It's used for issuing ODL config."
         if "$VERBOSE" = true; then
-            sudo yum install -y sshpass
+            sudo apt-get install sshpass
         else
-            sudo yum install -y sshpass &> /dev/null
+            sudo apt-get install sshpass &> /dev/null
         fi
     fi
 
