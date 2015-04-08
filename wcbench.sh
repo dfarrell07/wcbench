@@ -18,7 +18,7 @@ EX_ERR=1
 VERBOSE= true
 
 # Params for CBench test and ODL config
-NUM_SWITCHES=16 # Default number of switches for CBench to simulate
+NUM_SWITCHES=32 # Default number of switches for CBench to simulate
 NUM_MACS=100000  # Default number of MACs for CBench to use
 TESTS_PER_SWITCH=10  # Default number of CBench tests to do per CBench run
 MS_PER_TEST=10000  # Default milliseconds to run each CBench test
@@ -27,10 +27,10 @@ KARAF_SHELL_PORT=8101  # Port that the Karaf shell listens on
 CONTROLLER="OpenDaylight"  # Currently only support ODL
 CONTROLLER_IP="localhost"  # Change this to remote IP if running on two systems
 CONTROLLER_PORT=6633  # Default port for OpenDaylight
-SSH_HOSTNAME="controller1"  # You'll need to update this to reflect ~/.ssh/config
+SSH_HOSTNAME="localhost"  # You'll need to update this to reflect ~/.ssh/config
 
 # Paths used in this script
-BASE_DIR=$HOME/wcbench  # Directory that code and such is dropped into
+BASE_DIR=$HOME  # Directory that code and such is dropped into
 OF_DIR=$BASE_DIR/openflow  # Directory that contains OpenFlow code
 OFLOPS_DIR=$BASE_DIR/oflops  # Directory that contains oflops repo
 ODL_DIR=$BASE_DIR/distribution-karaf-0.2.1-Helium-SR1  # Directory with ODL code Helium version SR3
@@ -100,10 +100,12 @@ Setup and/or run CBench and/or OpenDaylight.
 OPTIONS:
     -h Show this message
     -v Output verbose debug info
-    -c Install CBench
+    -y Install CBench in Fedora
+    -a Install CBench in Ubuntu
     -t <time> Run CBench for given number of minutes
     -r Run CBench against OpenDaylight
-    -i Install OpenDaylight Helium 0.2.1
+    -f Install OpenDaylight Helium 0.2.1 in Fedora
+    -u Install OpenDaylight Helium 0.2.1 in Ubuntu
     -p <processors> Pin ODL to given number of processors
     -o Start and configure OpenDaylight Helium 0.2.1
     -k Kill OpenDaylight
@@ -151,7 +153,7 @@ cbench_installed()
 #   EX_OK if CBench is already installed or successfully installed
 #   EX_ERR if CBench fails to install
 ###############################################################################
-install_cbench()
+install_cbench_ubuntu()
 {
     if cbench_installed; then
         return $EX_OK
@@ -204,6 +206,69 @@ install_cbench()
     fi
     cd $old_cwd
 
+    # Validate that the install worked
+    if ! cbench_installed; then
+        echo "Failed to install CBench" >&2
+        exit $EX_ERR
+    else
+        echo "Successfully installed CBench"
+        return $EX_OK
+    fi
+}
+
+install_cbench_fedora()
+{
+    if cbench_installed; then
+        return $EX_OK
+    fi
+    
+    # Install required packages
+    echo "Installing CBench dependencies"
+    if "$VERBOSE" = true; then
+        sudo yum install -y net-snmp-devel libpcap-devel autoconf make automake libtool libconfig-devel git
+    else
+        sudo yum install -y net-snmp-devel libpcap-devel autoconf make automake libtool libconfig-devel git &> /dev/null
+    fi
+    
+    # Clone repo that contains CBench
+    echo "Cloning CBench repo into $OFLOPS_DIR"
+    if "$VERBOSE" = true; then
+        git clone https://github.com/andi-bigswitch/oflops.git $OFLOPS_DIR
+    else
+        git clone https://github.com/andi-bigswitch/oflops.git $OFLOPS_DIR &> /dev/null
+    fi
+    
+    # CBench requires the OpenFlow source code, clone it
+    echo "Cloning openflow source code into $OF_DIR"
+    if "$VERBOSE" = true; then
+        git clone git://gitosis.stanford.edu/openflow.git $OF_DIR
+    else
+        git clone git://gitosis.stanford.edu/openflow.git $OF_DIR &> /dev/null
+    fi
+    
+    # Build the oflops/configure file
+    old_cwd=$PWD
+    cd $OFLOPS_DIR
+    echo "Building oflops/configure file"
+    if "$VERBOSE" = true; then
+        ./boot.sh
+    else
+        ./boot.sh &> /dev/null
+    fi
+    
+    # Build oflops
+    echo "Building CBench"
+    if "$VERBOSE" = true; then
+        ./configure --with-openflow-src-dir=$OF_DIR
+        make
+        sudo make install
+    else
+        ./configure --with-openflow-src-dir=$OF_DIR &> /dev/null
+        make &> /dev/null
+        sudo make install &> /dev/null
+    fi
+    
+    cd $old_cwd
     # Validate that the install worked
     if ! cbench_installed; then
         echo "Failed to install CBench" >&2
@@ -562,7 +627,56 @@ add_to_featuresBoot()
 # Returns:
 #   EX_ERR if ODL install fails
 ###############################################################################
-install_opendaylight()
+install_opendaylight_fedora()
+{
+    # Only remove unzipped code, as zip is large and unlikely to have changed.
+    if [ -d $ODL_DIR ]; then
+        echo "Removing $ODL_DIR"
+        rm -rf $ODL_DIR
+    fi
+    
+    # Install required packages
+    echo "Installing OpenDaylight dependencies"
+    if "$VERBOSE" = true; then
+        sudo yum install -y java-1.7.0-openjdk unzip wget
+    else
+        sudo yum install -y java-1.7.0-openjdk unzip wget &> /dev/null
+    fi
+
+    # If we already have the zip archive, use that.
+    if [ -f $ODL_ZIP_PATH ]; then
+        echo "Using local $ODL_ZIP_PATH. Pass -d flag to remove."
+    else
+
+    # Grab OpenDaylight Helium 0.2.1
+    echo "Downloading OpenDaylight Helium 0.2.1"
+        if "$VERBOSE" = true; then
+            wget -P $BASE_DIR "https://nexus.opendaylight.org/content/groups/public/org/opendaylight/integration/distribution-karaf/0.2.1-Helium-SR1/$ODL_ZIP"
+        else
+            wget -P $BASE_DIR "https://nexus.opendaylight.org/content/groups/public/org/opendaylight/integration/distribution-karaf/0.2.1-Helium-SR1/$ODL_ZIP" &> /dev/null
+        fi
+    fi
+
+    # Confirm that download was successful
+    if [ ! -f $ODL_ZIP_PATH ]; then
+        echo "WARNING: Failed to dl ODL. Version bumped? If so, update \$ODL_ZIP" >&2
+        return $EX_ERR
+    fi
+
+    # Unzip ODL archive
+    echo "Unzipping OpenDaylight Helium 0.2.1"
+    if "$VERBOSE" = true; then
+        unzip -d $BASE_DIR $ODL_ZIP_PATH
+    else
+        unzip -d $BASE_DIR $ODL_ZIP_PATH &> /dev/null
+    fi
+
+    # Add required features to list installed by Karaf at ODL boot
+    add_to_featuresBoot "odl-openflowplugin-flow-services"
+    add_to_featuresBoot "odl-openflowplugin-drop-test"
+}
+
+install_opendaylight_ubuntu()
 {
     # Only remove unzipped code, as zip is large and unlikely to have changed.
     if [ -d $ODL_DIR ]; then
@@ -573,7 +687,7 @@ install_opendaylight()
     # Install required packages
     echo "Installing OpenDaylight dependencies"
     if "$VERBOSE" = true; then
-        sudo apt-get install java-1.7.0-openjdk unzip wget
+        sudo apt-get install openjdk-7-jdk unzip wget
     else
         sudo apt-get install java-1.7.0-openjdk unzip wget &> /dev/null
     fi
@@ -692,9 +806,9 @@ start_opendaylight()
             echo "Pinning ODL to $processors processor(s)"
             # Use taskset to pin ODL to a given number of processors
             if "$VERBOSE" = true; then
-                taskset -c 0-$(expr $processors - 1) ./bin/karaf
+                taskset -c 0-$(expr $processors - 1) ./bin/start
             else
-                taskset -c 0-$(expr $processors - 1) ./bin/karaf  &> /dev/null
+                taskset -c 0-$(expr $processors - 1) ./bin/start  &> /dev/null
             fi
         fi
     fi
@@ -836,7 +950,7 @@ fi
 action_taken=false
 
 # Parse options given from command line
-while getopts ":hvrcip:ot:kd" opt; do
+while getopts ":hvrayp:ot:kduf" opt; do
     case "$opt" in
         h)
             # Help message
@@ -862,14 +976,14 @@ while getopts ":hvrcip:ot:kd" opt; do
             run_cbench
             action_taken=true
             ;;
-        c)
-            # Install CBench
-            install_cbench
+        y)
+            #Install cbench in Fedora
+            install_cbench_fedora
             action_taken=true
             ;;
-        i)
-            # Install OpenDaylight
-            install_opendaylight
+        a)
+            # Install CBench in Ubuntu
+            install_cbench_ubuntu
             action_taken=true
             ;;
         p)
@@ -923,6 +1037,14 @@ while getopts ":hvrcip:ot:kd" opt; do
             # Delete local ODL and CBench code
             uninstall_odl
             uninstall_cbench
+            action_taken=true
+            ;;
+        u)
+            install_opendaylight_ubuntu
+            action_taken=true
+            ;;
+        f)
+            install_opendaylight_fedora
             action_taken=true
             ;;
         *)
