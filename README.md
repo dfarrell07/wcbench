@@ -37,10 +37,12 @@ Setup and/or run CBench and/or OpenDaylight.
 OPTIONS:
     -h Show this message
     -v Output verbose debug info
-    -c Install CBench
+    -y Install CBench in Fedora
+    -a Install CBench in Ubuntu
     -t <time> Run CBench for given number of minutes
     -r Run CBench against OpenDaylight
-    -i Install OpenDaylight Helium 0.2.1
+    -f Install OpenDaylight Helium 0.2.1 in Fedora
+    -u Install OpenDaylight Helium 0.2.1 in Ubuntu
     -p <processors> Pin ODL to given number of processors
     -o Start and configure OpenDaylight Helium 0.2.1
     -k Kill OpenDaylight

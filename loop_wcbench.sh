@@ -6,6 +6,9 @@
 EX_USAGE=64
 EX_OK=0
 
+# Initialisation for looping N times
+n=1
+
 # Output verbose debug info (true) or not (anything else)
 VERBOSE=false
 
@@ -108,34 +111,40 @@ run_wcbench()
 ###############################################################################
 # Repeatedly run WCBench against ODL without restarting ODL
 # Globals:
-#   None
+#   n
 # Arguments:
-#   None
+#   times
 # Returns:
 #   Exit status of run_wcbench
 ###############################################################################
 loop_no_restart()
 {
     echo "Looping WCBench against ODL without restarting ODL"
-    while :; do
+    times=${OPTARG}
+    while [[ $n -le $times ]]; do
+        echo "Running $n th time"
         start_odl
         run_wcbench
+        n=$((n+1))
     done
+    echo "Ran $((n-1)) times"
 }
 
 ###############################################################################
 # Repeatedly run WCBench against ODL, restart ODL between runs
 # Globals:
-#   VERBOSE
+#   VERBOSE, n
 # Arguments:
-#   None
+#   times
 # Returns:
 #   WCBench exit status
 ###############################################################################
 loop_with_restart()
 {
     echo "Looping WCBench against ODL, restarting ODL each run"
-    while :; do
+    times=${OPTARG}
+    while [[ $n -le $times ]]; do
+        echo "Running $n th time"       #To print the nth time
         start_odl
         run_wcbench
         # Stop ODL
@@ -144,7 +153,9 @@ loop_with_restart()
         else
             ./wcbench.sh -k
         fi
+        n=$((n+1))
     done
+    echo "Ran $((n-1)) times"             #Prints the number of times loop ran
 }
 
 # If executed with no options
@@ -157,7 +168,7 @@ fi
 action_taken=false
 
 # Parse options given from command line
-while getopts ":hvlp:rt:" opt; do
+while getopts ":hvl:p:r:t:" opt; do
     case "$opt" in
         h)
             # Help message

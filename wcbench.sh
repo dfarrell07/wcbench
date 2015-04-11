@@ -17,6 +17,9 @@ EX_ERR=1
 # Output verbose debug info (true) or not (anything else)
 VERBOSE=false
 
+# Checking the OS
+OS=`echo $OSTYPE`
+
 # Params for CBench test and ODL config
 NUM_SWITCHES=32 # Default number of switches for CBench to simulate
 NUM_MACS=100000  # Default number of MACs for CBench to use
@@ -37,7 +40,7 @@ ODL_DIR=$BASE_DIR/distribution-karaf-0.2.1-Helium-SR1  # Directory with ODL code
 ODL_ZIP="distribution-karaf-0.2.1-Helium-SR1.zip"  # ODL zip name
 ODL_ZIP_PATH=$BASE_DIR/$ODL_ZIP  # Full path to ODL zip
 PLUGIN_DIR=$ODL_DIR/plugins  # ODL plugin directory
-RESULTS_FILE=$BASE_DIR/"results.csv"  # File that results are stored in
+RESULTS_FILE=$BASE_DIR/wcbench/"results.csv"  # File that results are stored in. To place it in wcbench folder to avoid copying it there while running .stats.py
 CBENCH_LOG=$BASE_DIR/"cbench.log"  # Log file used to store strange error msgs
 CBENCH_BIN="/usr/local/bin/cbench"  # Path to CBench binary
 OFLOPS_BIN="/usr/local/bin/oflops"  # Path to oflops binary
@@ -159,12 +162,25 @@ install_cbench()
 
     # Install required packages
     echo "Installing CBench dependencies"
-    if "$VERBOSE" = true; then
-        sudo yum install -y net-snmp-devel libpcap-devel autoconf make automake libtool libconfig-devel git
-    else
-        sudo yum install -y net-snmp-devel libpcap-devel autoconf make automake libtool libconfig-devel git &> /dev/null
-    fi
+    
+    if [ "$OS" == 'fedora']; then   #Please check if "echo $OSTYPE" returns "fedora". If not replace "fedora" here with the returned name
+        if "$VERBOSE" = true; then
+            sudo yum install -y net-snmp-devel libpcap-devel autoconf make automake libtool libconfig-devel git
+        else
+            sudo yum install -y net-snmp-devel libpcap-devel autoconf make automake libtool libconfig-devel git &> /dev/null
+        fi
 
+    elif [ "$OS" == 'linux-gnu' ]; then
+        if "$VERBOSE" = true; then
+            sudo apt-get install libsnmp-dev libpcap-dev autoconf make automake libtool libconfig8-dev git
+        else
+            sudo apt-get install libsnmp-dev libpcap-dev autoconf make automake libtool libconfig8-dev git &> /dev/null
+        fi
+
+    else
+        echo "Not supporting $OS"
+    fi
+        
     # Clone repo that contains CBench
     echo "Cloning CBench repo into $OFLOPS_DIR"
     if "$VERBOSE" = true; then
@@ -572,10 +588,23 @@ install_opendaylight()
 
     # Install required packages
     echo "Installing OpenDaylight dependencies"
-    if "$VERBOSE" = true; then
-        sudo yum install -y java-1.7.0-openjdk unzip wget
+
+    if ["$OS" == 'fedora']; then    #Please check if "echo $OSTYPE" returns "fedora". If not replace "fedora" here with the returned name
+        if "$VERBOSE" = true; then
+            sudo yum install -y java-1.7.0-openjdk unzip wget
+        else
+            sudo yum install -y java-1.7.0-openjdk unzip wget &> /dev/null
+        fi
+
+    elif [ "$OS" == 'linux-gnu']; then
+        if "$verbose" = true; then
+            sudo apt-get install openjdk-7-jdk openjdk-7-jre unzip wget
+        else
+            sudo apt-get install openjdk-7-jdk openjdk-7-jre unzip wget &> /dev/null
+        fi
+
     else
-        sudo yum install -y java-1.7.0-openjdk unzip wget &> /dev/null
+        echo "Not supporting $OSTYPE"
     fi
 
     # If we already have the zip archive, use that.
@@ -717,10 +746,23 @@ issue_odl_config()
     # This could be done with public key crypto, but sshpass is easier
     if ! command -v sshpass &> /dev/null; then
         echo "Installing sshpass. It's used for issuing ODL config."
-        if "$VERBOSE" = true; then
-            sudo yum install -y sshpass
+
+        if [ "$OS" == 'fedora' ]; then     #Please check if "echo $OSTYPE" returns "fedora". If not replace "fedora" here with the returned name
+            if "$VERBOSE" = true; then
+                sudo yum install -y sshpass
+            else
+                sudo yum install -y sshpass &> /dev/null
+            fi
+       
+        elif [ "$OS" == 'linux-gnu' ]; then
+            if "$VERBOSE" = true; then
+                sudo apt-get install sshpass
+            else
+                sudo apt-get install sshpass &> /dev/null
+            fi
+
         else
-            sudo yum install -y sshpass &> /dev/null
+            echo "Not supporting $OSTYPE"
         fi
     fi
 
