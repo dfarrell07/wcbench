@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env sh
 # Main WCBench script. WCBench wraps CBench in stuff to make it useful.
 # This script supports installing ODL, installing CBench, starting and
 # configuring ODL, running CBench against ODL, pinning ODL to a given
@@ -15,7 +15,10 @@ EX_OK=0
 EX_ERR=1
 
 # Output verbose debug info (true) or not (anything else)
-VERBOSE= true
+VERBOSE=false
+
+# Checking the OS
+OS=`echo $OSTYPE`
 
 # Params for CBench test and ODL config
 NUM_SWITCHES=32 # Default number of switches for CBench to simulate
@@ -27,17 +30,17 @@ KARAF_SHELL_PORT=8101  # Port that the Karaf shell listens on
 CONTROLLER="OpenDaylight"  # Currently only support ODL
 CONTROLLER_IP="localhost"  # Change this to remote IP if running on two systems
 CONTROLLER_PORT=6633  # Default port for OpenDaylight
-SSH_HOSTNAME="localhost"  # You'll need to update this to reflect ~/.ssh/config
+SSH_HOSTNAME="cbenchc"  # You'll need to update this to reflect ~/.ssh/config
 
 # Paths used in this script
 BASE_DIR=$HOME  # Directory that code and such is dropped into
 OF_DIR=$BASE_DIR/openflow  # Directory that contains OpenFlow code
 OFLOPS_DIR=$BASE_DIR/oflops  # Directory that contains oflops repo
-ODL_DIR=$BASE_DIR/distribution-karaf-0.2.1-Helium-SR1  # Directory with ODL code Helium version SR3
+ODL_DIR=$BASE_DIR/distribution-karaf-0.2.1-Helium-SR1  # Directory with ODL code
 ODL_ZIP="distribution-karaf-0.2.1-Helium-SR1.zip"  # ODL zip name
 ODL_ZIP_PATH=$BASE_DIR/$ODL_ZIP  # Full path to ODL zip
 PLUGIN_DIR=$ODL_DIR/plugins  # ODL plugin directory
-RESULTS_FILE=$BASE_DIR/"results.csv"  # File that results are stored in
+RESULTS_FILE=$BASE_DIR/wcbench/"results.csv"  # File that results are stored in. To place it in wcbench folder to avoid copying it there while running .stats.py
 CBENCH_LOG=$BASE_DIR/"cbench.log"  # Log file used to store strange error msgs
 CBENCH_BIN="/usr/local/bin/cbench"  # Path to CBench binary
 OFLOPS_BIN="/usr/local/bin/oflops"  # Path to oflops binary
@@ -100,12 +103,10 @@ Setup and/or run CBench and/or OpenDaylight.
 OPTIONS:
     -h Show this message
     -v Output verbose debug info
-    -y Install CBench in Fedora
-    -a Install CBench in Ubuntu
+    -c Install CBench
     -t <time> Run CBench for given number of minutes
     -r Run CBench against OpenDaylight
-    -f Install OpenDaylight Helium 0.2.1 in Fedora
-    -u Install OpenDaylight Helium 0.2.1 in Ubuntu
+    -i Install OpenDaylight Helium 0.2.1
     -p <processors> Pin ODL to given number of processors
     -o Start and configure OpenDaylight Helium 0.2.1
     -k Kill OpenDaylight
@@ -153,7 +154,7 @@ cbench_installed()
 #   EX_OK if CBench is already installed or successfully installed
 #   EX_ERR if CBench fails to install
 ###############################################################################
-install_cbench_ubuntu()
+install_cbench()
 {
     if cbench_installed; then
         return $EX_OK
@@ -161,12 +162,25 @@ install_cbench_ubuntu()
 
     # Install required packages
     echo "Installing CBench dependencies"
-    if "$VERBOSE" = true; then
-        sudo apt-get install libsnmp-dev libpcap-dev autoconf make automake libtool libconfig8-dev git
-    else
-        sudo apt-get install libsnmp-dev libpcap-dev autoconf make automake libtool libconfig8-dev git &> /dev/null
-    fi
+    
+    if [ "$OS" == 'fedora']; then   #Please check if "echo $OSTYPE" returns "fedora". If not replace "fedora" here with the returned name
+        if "$VERBOSE" = true; then
+            sudo yum install -y net-snmp-devel libpcap-devel autoconf make automake libtool libconfig-devel git
+        else
+            sudo yum install -y net-snmp-devel libpcap-devel autoconf make automake libtool libconfig-devel git &> /dev/null
+        fi
 
+    elif [ "$OS" == 'linux-gnu' ]; then
+        if "$VERBOSE" = true; then
+            sudo apt-get install libsnmp-dev libpcap-dev autoconf make automake libtool libconfig8-dev git
+        else
+            sudo apt-get install libsnmp-dev libpcap-dev autoconf make automake libtool libconfig8-dev git &> /dev/null
+        fi
+
+    else
+        echo "Not supporting $OS"
+    fi
+        
     # Clone repo that contains CBench
     echo "Cloning CBench repo into $OFLOPS_DIR"
     if "$VERBOSE" = true; then
@@ -206,69 +220,6 @@ install_cbench_ubuntu()
     fi
     cd $old_cwd
 
-    # Validate that the install worked
-    if ! cbench_installed; then
-        echo "Failed to install CBench" >&2
-        exit $EX_ERR
-    else
-        echo "Successfully installed CBench"
-        return $EX_OK
-    fi
-}
-
-install_cbench_fedora()
-{
-    if cbench_installed; then
-        return $EX_OK
-    fi
-    
-    # Install required packages
-    echo "Installing CBench dependencies"
-    if "$VERBOSE" = true; then
-        sudo yum install -y net-snmp-devel libpcap-devel autoconf make automake libtool libconfig-devel git
-    else
-        sudo yum install -y net-snmp-devel libpcap-devel autoconf make automake libtool libconfig-devel git &> /dev/null
-    fi
-    
-    # Clone repo that contains CBench
-    echo "Cloning CBench repo into $OFLOPS_DIR"
-    if "$VERBOSE" = true; then
-        git clone https://github.com/andi-bigswitch/oflops.git $OFLOPS_DIR
-    else
-        git clone https://github.com/andi-bigswitch/oflops.git $OFLOPS_DIR &> /dev/null
-    fi
-    
-    # CBench requires the OpenFlow source code, clone it
-    echo "Cloning openflow source code into $OF_DIR"
-    if "$VERBOSE" = true; then
-        git clone git://gitosis.stanford.edu/openflow.git $OF_DIR
-    else
-        git clone git://gitosis.stanford.edu/openflow.git $OF_DIR &> /dev/null
-    fi
-    
-    # Build the oflops/configure file
-    old_cwd=$PWD
-    cd $OFLOPS_DIR
-    echo "Building oflops/configure file"
-    if "$VERBOSE" = true; then
-        ./boot.sh
-    else
-        ./boot.sh &> /dev/null
-    fi
-    
-    # Build oflops
-    echo "Building CBench"
-    if "$VERBOSE" = true; then
-        ./configure --with-openflow-src-dir=$OF_DIR
-        make
-        sudo make install
-    else
-        ./configure --with-openflow-src-dir=$OF_DIR &> /dev/null
-        make &> /dev/null
-        sudo make install &> /dev/null
-    fi
-    
-    cd $old_cwd
     # Validate that the install worked
     if ! cbench_installed; then
         echo "Failed to install CBench" >&2
@@ -532,7 +483,7 @@ run_cbench()
 }
 
 ###############################################################################
-# Deletes OpenDaylight source (unzipped so that every time a zipped file isnt downloaded.)
+# Deletes OpenDaylight source (zipped and unzipped)
 # Globals:
 #   ODL_DIR
 #   ODL_ZIP_PATH
@@ -545,11 +496,11 @@ uninstall_odl()
 {
     if [ -d $ODL_DIR ]; then
         echo "Removing $ODL_DIR"
-        sudo rm -rf $ODL_DIR
+        rm -rf $ODL_DIR
     fi
     if [ -f $ODL_ZIP_PATH ]; then
         echo "Removing $ODL_ZIP_PATH"
-        sudo rm -rf $ODL_ZIP_PATH
+        rm -f $ODL_ZIP_PATH
     fi
 }
 
@@ -627,29 +578,41 @@ add_to_featuresBoot()
 # Returns:
 #   EX_ERR if ODL install fails
 ###############################################################################
-install_opendaylight_fedora()
+install_opendaylight()
 {
     # Only remove unzipped code, as zip is large and unlikely to have changed.
     if [ -d $ODL_DIR ]; then
         echo "Removing $ODL_DIR"
         rm -rf $ODL_DIR
     fi
-    
+
     # Install required packages
     echo "Installing OpenDaylight dependencies"
-    if "$VERBOSE" = true; then
-        sudo yum install -y java-1.7.0-openjdk unzip wget
+
+    if ["$OS" == 'fedora']; then    #Please check if "echo $OSTYPE" returns "fedora". If not replace "fedora" here with the returned name
+        if "$VERBOSE" = true; then
+            sudo yum install -y java-1.7.0-openjdk unzip wget
+        else
+            sudo yum install -y java-1.7.0-openjdk unzip wget &> /dev/null
+        fi
+
+    elif [ "$OS" == 'linux-gnu']; then
+        if "$verbose" = true; then
+            sudo apt-get install openjdk-7-jdk openjdk-7-jre unzip wget
+        else
+            sudo apt-get install openjdk-7-jdk openjdk-7-jre unzip wget &> /dev/null
+        fi
+
     else
-        sudo yum install -y java-1.7.0-openjdk unzip wget &> /dev/null
+        echo "Not supporting $OSTYPE"
     fi
 
     # If we already have the zip archive, use that.
     if [ -f $ODL_ZIP_PATH ]; then
         echo "Using local $ODL_ZIP_PATH. Pass -d flag to remove."
     else
-
-    # Grab OpenDaylight Helium 0.2.1
-    echo "Downloading OpenDaylight Helium 0.2.1"
+        # Grab OpenDaylight Helium 0.2.1
+        echo "Downloading OpenDaylight Helium 0.2.1"
         if "$VERBOSE" = true; then
             wget -P $BASE_DIR "https://nexus.opendaylight.org/content/groups/public/org/opendaylight/integration/distribution-karaf/0.2.1-Helium-SR1/$ODL_ZIP"
         else
@@ -671,54 +634,6 @@ install_opendaylight_fedora()
         unzip -d $BASE_DIR $ODL_ZIP_PATH &> /dev/null
     fi
 
-    # Add required features to list installed by Karaf at ODL boot
-    add_to_featuresBoot "odl-openflowplugin-flow-services"
-    add_to_featuresBoot "odl-openflowplugin-drop-test"
-}
-
-install_opendaylight_ubuntu()
-{
-    # Only remove unzipped code, as zip is large and unlikely to have changed.
-    if [ -d $ODL_DIR ]; then
-         echo "Removing $ODL_DIR"
-         sudo rm -rf $ODL_DIR
-    fi
-
-    # Install required packages
-    echo "Installing OpenDaylight dependencies"
-    if "$VERBOSE" = true; then
-        sudo apt-get install openjdk-7-jdk unzip wget
-    else
-        sudo apt-get install java-1.7.0-openjdk unzip wget &> /dev/null
-    fi
-
-    # If we already have the zip archive, use that.
-    if [ -f $ODL_ZIP_PATH ]; then
-        echo "Using local $ODL_ZIP_PATH. Pass -d flag to remove."
-    else
-        # Grab OpenDaylight Helium 0.2.1
-        echo "Downloading OpenDaylight Helium 0.2.1"
-            if "$VERBOSE" = true; then
-                wget -P $BASE_DIR "https://nexus.opendaylight.org/content/groups/public/org/opendaylight/integration/distribution-karaf/0.2.1-Helium-SR1/distribution-karaf-0.2.1-Helium-SR1.zip"
-            else
-                wget -P $BASE_DIR "https://nexus.opendaylight.org/content/groups/public/org/opendaylight/integration/distribution-karaf/0.2.1-Helium-SR1/distribution-karaf-0.2.1-Helium-SR1.zip" &> /dev/null
-            fi
-    fi
-      
-
-    # Confirm that download was successful
-    if [ ! -f $ODL_ZIP_PATH ]; then
-        echo "WARNING: Failed to dl ODL. Version bumped? If so, update \$ODL_ZIP" >&2
-        return $EX_ERR
-    fi
-
-    # Unzip ODL archive
-    echo "Unzipping OpenDaylight Helium 0.2.1"
-    if "$VERBOSE" = true; then
-        unzip $ODL_ZIP_PATH -d $BASE_DIR
-    else
-        unzip $ODL_ZIP_PATH -d $BASE_DIR &> /dev/null
-    fi
     # Add required features to list installed by Karaf at ODL boot
     add_to_featuresBoot "odl-openflowplugin-flow-services"
     add_to_featuresBoot "odl-openflowplugin-drop-test"
@@ -798,9 +713,9 @@ start_opendaylight()
         echo "Starting OpenDaylight"
         if [ -z $processors ]; then
             if "$VERBOSE" = true; then
-                sudo ./bin/start
+                ./bin/start
             else
-                sudo ./bin/start &> /dev/null
+                ./bin/start &> /dev/null
             fi
         else
             echo "Pinning ODL to $processors processor(s)"
@@ -831,10 +746,23 @@ issue_odl_config()
     # This could be done with public key crypto, but sshpass is easier
     if ! command -v sshpass &> /dev/null; then
         echo "Installing sshpass. It's used for issuing ODL config."
-        if "$VERBOSE" = true; then
-            sudo apt-get install sshpass
+
+        if [ "$OS" == 'fedora' ]; then     #Please check if "echo $OSTYPE" returns "fedora". If not replace "fedora" here with the returned name
+            if "$VERBOSE" = true; then
+                sudo yum install -y sshpass
+            else
+                sudo yum install -y sshpass &> /dev/null
+            fi
+       
+        elif [ "$OS" == 'linux-gnu' ]; then
+            if "$VERBOSE" = true; then
+                sudo apt-get install sshpass
+            else
+                sudo apt-get install sshpass &> /dev/null
+            fi
+
         else
-            sudo apt-get install sshpass &> /dev/null
+            echo "Not supporting $OSTYPE"
         fi
     fi
 
@@ -950,7 +878,7 @@ fi
 action_taken=false
 
 # Parse options given from command line
-while getopts ":hvrayp:ot:kduf" opt; do
+while getopts ":hvrcip:ot:kd" opt; do
     case "$opt" in
         h)
             # Help message
@@ -976,14 +904,14 @@ while getopts ":hvrayp:ot:kduf" opt; do
             run_cbench
             action_taken=true
             ;;
-        y)
-            #Install cbench in Fedora
-            install_cbench_fedora
+        c)
+            # Install CBench
+            install_cbench
             action_taken=true
             ;;
-        a)
-            # Install CBench in Ubuntu
-            install_cbench_ubuntu
+        i)
+            # Install OpenDaylight
+            install_opendaylight
             action_taken=true
             ;;
         p)
@@ -1037,14 +965,6 @@ while getopts ":hvrayp:ot:kduf" opt; do
             # Delete local ODL and CBench code
             uninstall_odl
             uninstall_cbench
-            action_taken=true
-            ;;
-        u)
-            install_opendaylight_ubuntu
-            action_taken=true
-            ;;
-        f)
-            install_opendaylight_fedora
             action_taken=true
             ;;
         *)
