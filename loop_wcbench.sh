@@ -9,6 +9,9 @@ EX_OK=0
 # Output verbose debug info (true) or not (anything else)
 VERBOSE=false
 
+# Initialisation for looping N times
+n=1
+
 ###############################################################################
 # Prints usage message
 # Globals:
@@ -28,8 +31,8 @@ Run WCBench against OpenDaylight in a loop.
 OPTIONS:
     -h Show this help message
     -v Output verbose debug info
-    -l Loop WCBench runs without restarting ODL
-    -r Loop WCBench runs, restart ODL between runs
+    -l Loop WCBench runs for given number of times without restarting ODL
+    -r Loop WCBench runs for given number of times, restart ODL between runs
     -t <time> Run WCBench for a given number of minutes
     -p <processors> Pin ODL to given number of processors
 EOF
@@ -106,36 +109,40 @@ run_wcbench()
 }
 
 ###############################################################################
-# Repeatedly run WCBench against ODL without restarting ODL
+# Repeatedly run WCBench against ODL for given number of times without restarting ODL 
 # Globals:
 #   None
 # Arguments:
-#   None
+#   times
 # Returns:
 #   Exit status of run_wcbench
 ###############################################################################
 loop_no_restart()
 {
     echo "Looping WCBench against ODL without restarting ODL"
-    while :; do
+    times=${OPTARG}
+    while [[ $n -le $times ]]; do
         start_odl
         run_wcbench
+        n=$((n+1))
+        echo "Ran $((n-1)) times"
     done
 }
 
 ###############################################################################
-# Repeatedly run WCBench against ODL, restart ODL between runs
+# Repeatedly run WCBench against ODL for given number of times, restart ODL between runs
 # Globals:
 #   VERBOSE
 # Arguments:
-#   None
+#   times
 # Returns:
 #   WCBench exit status
 ###############################################################################
 loop_with_restart()
 {
     echo "Looping WCBench against ODL, restarting ODL each run"
-    while :; do
+    times=${OPTARG}
+    while [[ $n -le $times ]]; do
         start_odl
         run_wcbench
         # Stop ODL
@@ -144,7 +151,9 @@ loop_with_restart()
         else
             ./wcbench.sh -k
         fi
+        n=$((n+1))
     done
+    echo "Ran $((n-1)) times"
 }
 
 # If executed with no options
@@ -157,7 +166,7 @@ fi
 action_taken=false
 
 # Parse options given from command line
-while getopts ":hvlp:rt:" opt; do
+while getopts ":hvl:p:r:t:" opt; do
     case "$opt" in
         h)
             # Help message
