@@ -31,8 +31,8 @@ Run WCBench against OpenDaylight in a loop.
 OPTIONS:
     -h Show this help message
     -v Output verbose debug info
-    -l Loop WCBench runs without restarting ODL
-    -r Loop WCBench runs, restart ODL between runs
+    -l Loop WCBench runs for given number of times without restarting ODL
+    -r Loop WCBench runs for given number of times, restart ODL between runs
     -t <time> Run WCBench for a given number of minutes
     -p <processors> Pin ODL to given number of processors
 EOF
