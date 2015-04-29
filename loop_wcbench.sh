@@ -9,9 +9,6 @@ EX_OK=0
 # Output verbose debug info (true) or not (anything else)
 VERBOSE=false
 
-# Initialisation for looping N times
-n=1
-
 ###############################################################################
 # Prints usage message
 # Globals:
@@ -31,8 +28,8 @@ Run WCBench against OpenDaylight in a loop.
 OPTIONS:
     -h Show this help message
     -v Output verbose debug info
-    -l Loop WCBench runs for given number of times without restarting ODL
-    -r Loop WCBench runs for given number of times, restart ODL between runs
+    -l <num_runs> Loop WCBench given number of times without restarting ODL
+    -r <num_runs> Loop WCBench given number of times, restart ODL between runs
     -t <time> Run WCBench for a given number of minutes
     -p <processors> Pin ODL to given number of processors
 EOF
@@ -109,51 +106,52 @@ run_wcbench()
 }
 
 ###############################################################################
-# Repeatedly run WCBench against ODL for given number of times without restarting ODL 
+# Run WCBench against ODL a given number of times without restarting ODL
 # Globals:
 #   None
 # Arguments:
-#   times
+#   The number of times to run WCBench against ODL
 # Returns:
 #   Exit status of run_wcbench
 ###############################################################################
 loop_no_restart()
 {
-    echo "Looping WCBench against ODL without restarting ODL"
-    times=${OPTARG}
-    while [[ $n -le $times ]]; do
+    num_runs=$1
+    echo "Looping WCBench without restarting ODL"
+    for (( runs_done = 0; runs_done < $num_runs; runs_done++ )); do
+        echo "Starting run $(expr $runs_done + 1) of $num_runs"
         start_odl
+
+        # Do this last so fn returns same exit code
         run_wcbench
-        n=$((n+1))
-        echo "Ran $((n-1)) times"
     done
 }
 
 ###############################################################################
-# Repeatedly run WCBench against ODL for given number of times, restart ODL between runs
+# Run WCBench against ODL a given number of times, restart ODL between runs
 # Globals:
 #   VERBOSE
 # Arguments:
-#   times
+#   The number of times to run WCBench against ODL
 # Returns:
 #   WCBench exit status
 ###############################################################################
 loop_with_restart()
 {
-    echo "Looping WCBench against ODL, restarting ODL each run"
-    times=${OPTARG}
-    while [[ $n -le $times ]]; do
+    num_runs=$1
+    echo "Looping WCBench, restarting ODL each run"
+    for (( runs_done = 0; runs_done < $num_runs; runs_done++ )); do
+        echo "Starting run $(expr $runs_done + 1) of $num_runs"
         start_odl
         run_wcbench
-        # Stop ODL
+
+        # Stop ODL. Do this last so fn returns same exit code.
         if "$VERBOSE" = true; then
             ./wcbench.sh -vk
         else
             ./wcbench.sh -k
         fi
-        n=$((n+1))
     done
-    echo "Ran $((n-1)) times"
 }
 
 # If executed with no options
@@ -179,7 +177,17 @@ while getopts ":hvl:p:r:t:" opt; do
             ;;
         l)
             # Loop without restarting ODL between WCBench runs
-            loop_no_restart
+            num_runs=${OPTARG}
+
+            if [[ $num_runs -lt 1 ]]; then
+                echo "Doing less than 1 run doesn't make sense"
+                exit $EX_USAGE
+            else
+                echo "Will run WCBench against ODL $num_runs time(s)"
+            fi
+
+            # Kick off testing loop
+            loop_no_restart $num_runs
             action_taken=true
             ;;
         p)
@@ -193,7 +201,17 @@ while getopts ":hvl:p:r:t:" opt; do
             ;;
         r)
             # Restart ODL between each WCBench run
-            loop_with_restart
+            num_runs=${OPTARG}
+
+            if [[ $num_runs -lt 1 ]]; then
+                echo "Doing less than 1 run doesn't make sense"
+                exit $EX_USAGE
+            else
+                echo "Will run WCBench against ODL $num_runs time(s)"
+            fi
+
+            # Kick off testing loop
+            loop_with_restart $num_runs
             action_taken=true
             ;;
         t)
