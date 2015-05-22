@@ -28,8 +28,8 @@ Run WCBench against OpenDaylight in a loop.
 OPTIONS:
     -h Show this help message
     -v Output verbose debug info
-    -l Loop WCBench runs without restarting ODL
-    -r Loop WCBench runs, restart ODL between runs
+    -l <num_runs> Loop WCBench given number of times without restarting ODL
+    -r <num_runs> Loop WCBench given number of times, restart ODL between runs
     -t <time> Run WCBench for a given number of minutes
     -p <processors> Pin ODL to given number of processors
 EOF
@@ -106,39 +106,46 @@ run_wcbench()
 }
 
 ###############################################################################
-# Repeatedly run WCBench against ODL without restarting ODL
+# Run WCBench against ODL a given number of times without restarting ODL
 # Globals:
 #   None
 # Arguments:
-#   None
+#   The number of times to run WCBench against ODL
 # Returns:
 #   Exit status of run_wcbench
 ###############################################################################
 loop_no_restart()
 {
-    echo "Looping WCBench against ODL without restarting ODL"
-    while :; do
+    num_runs=$1
+    echo "Looping WCBench without restarting ODL"
+    for (( runs_done = 0; runs_done < $num_runs; runs_done++ )); do
+        echo "Starting run $(expr $runs_done + 1) of $num_runs"
         start_odl
+
+        # Do this last so fn returns same exit code
         run_wcbench
     done
 }
 
 ###############################################################################
-# Repeatedly run WCBench against ODL, restart ODL between runs
+# Run WCBench against ODL a given number of times, restart ODL between runs
 # Globals:
 #   VERBOSE
 # Arguments:
-#   None
+#   The number of times to run WCBench against ODL
 # Returns:
 #   WCBench exit status
 ###############################################################################
 loop_with_restart()
 {
-    echo "Looping WCBench against ODL, restarting ODL each run"
-    while :; do
+    num_runs=$1
+    echo "Looping WCBench, restarting ODL each run"
+    for (( runs_done = 0; runs_done < $num_runs; runs_done++ )); do
+        echo "Starting run $(expr $runs_done + 1) of $num_runs"
         start_odl
         run_wcbench
-        # Stop ODL
+
+        # Stop ODL. Do this last so fn returns same exit code.
         if "$VERBOSE" = true; then
             ./wcbench.sh -vk
         else
@@ -157,7 +164,7 @@ fi
 action_taken=false
 
 # Parse options given from command line
-while getopts ":hvlp:rt:" opt; do
+while getopts ":hvl:p:r:t:" opt; do
     case "$opt" in
         h)
             # Help message
@@ -170,7 +177,17 @@ while getopts ":hvlp:rt:" opt; do
             ;;
         l)
             # Loop without restarting ODL between WCBench runs
-            loop_no_restart
+            num_runs=${OPTARG}
+
+            if [[ $num_runs -lt 1 ]]; then
+                echo "Doing less than 1 run doesn't make sense"
+                exit $EX_USAGE
+            else
+                echo "Will run WCBench against ODL $num_runs time(s)"
+            fi
+
+            # Kick off testing loop
+            loop_no_restart $num_runs
             action_taken=true
             ;;
         p)
@@ -184,7 +201,17 @@ while getopts ":hvlp:rt:" opt; do
             ;;
         r)
             # Restart ODL between each WCBench run
-            loop_with_restart
+            num_runs=${OPTARG}
+
+            if [[ $num_runs -lt 1 ]]; then
+                echo "Doing less than 1 run doesn't make sense"
+                exit $EX_USAGE
+            else
+                echo "Will run WCBench against ODL $num_runs time(s)"
+            fi
+
+            # Kick off testing loop
+            loop_with_restart $num_runs
             action_taken=true
             ;;
         t)

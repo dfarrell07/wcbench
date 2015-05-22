@@ -40,9 +40,9 @@ OPTIONS:
     -c Install CBench
     -t <time> Run CBench for given number of minutes
     -r Run CBench against OpenDaylight
-    -i Install OpenDaylight Helium 0.2.1
+    -i Install OpenDaylight Helium 0.2.3
     -p <processors> Pin ODL to given number of processors
-    -o Start and configure OpenDaylight Helium 0.2.1
+    -o Start and configure OpenDaylight Helium 0.2.3
     -k Kill OpenDaylight
     -d Delete local ODL and CBench code
 ```
@@ -55,8 +55,8 @@ Run WCBench against OpenDaylight in a loop.
 OPTIONS:
     -h Show this help message
     -v Output verbose debug info
-    -l Loop WCBench runs without restarting ODL
-    -r Loop WCBench runs, restart ODL between runs
+    -l <num_runs> Loop WCBench given number of times without restarting ODL
+    -r <num_runs> Loop WCBench given number of times, restart ODL between runs
     -t <time> Run WCBench for a given number of minutes
     -p <processors> Pin ODL to given number of processors
 ```
@@ -111,8 +111,8 @@ The `loop_wcbench.sh` script is a fairly simple wrapper around `wcbench.sh` ("I 
 
 In more detail, the `loop_wcbench.sh` script supports:
 
-* Repeatedly running WCBench against ODL without restarting ODL between runs. This test revealed the perf degradation over time described in [bug 1395](https://bugs.opendaylight.org/show_bug.cgi?id=1395).
-* Repeatedly running WCBench against ODL, restarting ODL between runs. This acted as a control when finding [bug 1395](https://bugs.opendaylight.org/show_bug.cgi?id=1395), as restarting ODL between runs mitigated perf decreases. 
+* Running WCBench against ODL a given number of times, without restarting ODL between runs. This test revealed the perf degradation over time described in [bug 1395](https://bugs.opendaylight.org/show_bug.cgi?id=1395).
+* Running WCBench against ODL a given number of times, restarting ODL between runs. This acted as a control when finding [bug 1395](https://bugs.opendaylight.org/show_bug.cgi?id=1395), as restarting ODL between runs mitigated perf decreases.
 * Pass run length info to WCBench, causing WCBench runs to last for the given number of minutes. Note that longer runs seem to result in lower standard deviation flows/sec results.
 * Pin ODL to a given number of processors. This is basically a thin hand-off to `wcbench.sh`. As mentioned above, pinning ODL allows it to be tested while the process is properly pegged.
 
@@ -374,8 +374,8 @@ Building CBench
 CBench is installed
 Successfully installed CBench
 Installing OpenDaylight dependencies
-Downloading OpenDaylight Helium 0.2.1
-Unzipping OpenDaylight Helium 0.2.1
+Downloading OpenDaylight Helium 0.2.3
+Unzipping OpenDaylight Helium 0.2.3
 odl-openflowplugin-flow-services added to features installed at boot
 odl-openflowplugin-drop-test added to features installed at boot
 ```
@@ -428,8 +428,8 @@ Once you're done, you can stop ODL and clean up the CBench and ODL source/binari
 [fedora@dfarrell-wcbench wcbench]$ ./wcbench.sh -k
 Stopping OpenDaylight
 [fedora@dfarrell-wcbench wcbench]$ ./wcbench.sh -d
-Removing /home/fedora/distribution-karaf-0.2.1-Helium-SR1
-Removing /home/fedora/distribution-karaf-0.2.1-Helium-SR1.zip
+Removing /home/fedora/distribution-karaf-0.2.3-Helium-SR3
+Removing /home/fedora/distribution-karaf-0.2.3-Helium-SR3.zip
 Removing /home/fedora/openflow
 Removing /home/fedora/oflops
 Removing /usr/local/bin/cbench
