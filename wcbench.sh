@@ -8,24 +8,6 @@
 # The main repo for WCBench is: https://github.com/dfarrell07/wcbench
 # See README.md for more details.
 
-# Find OS
-python -mplatform | grep Ubuntu
-exit=$?
-if [ $exit != 0 ]; then
-	python -mplatform | grep fedora
-	exit=$?
-	if [ $exit != 0 ]; then
-		echo "This OS is not supported. Only Fedora and Ubuntu are supported."
-		exit
-	else
-		echo "OS is Fedora"
-		OS=fedora
-	fi
-else
-	echo "OS is Ubuntu"
-	OS=ubuntu
-fi
-
 # Exit codes
 EX_USAGE=64
 EX_NOT_FOUND=65
@@ -177,20 +159,22 @@ install_cbench()
 
     # Install required packages
     echo "Installing CBench dependencies"
-    if [[ OS == ubuntu ]]; then
-        if "$VERBOSE" = true; then
-            sudo apt-get install -y net-snmp-devel libpcap-devel autoconf make automake libtool libconfig-devel git
-        else
-            sudo apt-get install -y net-snmp-devel libpcap-devel autoconf make automake libtool libconfig-devel git &> /dev/null
-        fi
-    elif [[ OS == fedora ]]; then
+    # Use the appropriate package manager for the current OS
+    if command -v yum &> /dev/null; then
         if "$VERBOSE" = true; then
             sudo yum install -y net-snmp-devel libpcap-devel autoconf make automake libtool libconfig-devel git
         else
             sudo yum install -y net-snmp-devel libpcap-devel autoconf make automake libtool libconfig-devel git &> /dev/null
         fi
+    elif command -v apt-get &> /dev/null; then
+        echo "WARNING: Debian-family support is new and much less tested" >&2
+        if "$VERBOSE" = true; then
+            sudo apt-get install -y libsnmp-dev libpcap-dev autoconf make automake libtool libconfig-dev git
+        else
+            sudo apt-get install -y libsnmp-dev libpcap-dev autoconf make automake libtool libconfig-dev git &> /dev/null
+        fi
     fi
-    
+
     # Clone repo that contains CBench
     echo "Cloning CBench repo into $OFLOPS_DIR"
     if "$VERBOSE" = true; then
@@ -598,20 +582,22 @@ install_opendaylight()
 
     # Install required packages
     echo "Installing OpenDaylight dependencies"
-    if [[ OS == ubuntu ]]; then
-        if "$VERBOSE" = true; then
-            sudo apt-get install -y java-1.7.0-openjdk unzip wget
-        else
-            sudo apt-get install -y java-1.7.0-openjdk unzip wget &> /dev/null
-        fi
-    elif [[ OS == fedora ]]; then
+    # Use the appropriate package manager for the current OS
+    if command -v yum &> /dev/null; then
         if "$VERBOSE" = true; then
             sudo yum install -y java-1.7.0-openjdk unzip wget
         else
             sudo yum install -y java-1.7.0-openjdk unzip wget &> /dev/null
         fi
+    elif command -v apt-get &> /dev/null; then
+        echo "WARNING: Debian-family support is new and much less tested" >&2
+        if "$VERBOSE" = true; then
+            sudo apt-get install -y openjdk-7-jdk unzip wget
+        else
+            sudo apt-get install -y openjdk-7-jdk unzip wget &> /dev/null
+        fi
     fi
-    
+
     # If we already have the zip archive, use that.
     if [ -f $ODL_ZIP_PATH ]; then
         echo "Using local $ODL_ZIP_PATH. Pass -d flag to remove."
@@ -751,17 +737,19 @@ issue_odl_config()
     # This could be done with public key crypto, but sshpass is easier
     if ! command -v sshpass &> /dev/null; then
         echo "Installing sshpass. It's used for issuing ODL config."
-        if [[ OS == ubuntu ]]; then
-            if "$VERBOSE" = true; then
-                sudo apt-get install -y sshpass
-            else
-                sudo apt-get install -y sshpass &> /dev/null
-            fi
-        elif [[ OS == fedora ]]; then
+        # Use the appropriate package manager for the current OS
+        if command -v yum &> /dev/null; then
             if "$VERBOSE" = true; then
                 sudo yum install -y sshpass
             else
                 sudo yum install -y sshpass &> /dev/null
+            fi
+        elif command -v apt-get &> /dev/null; then
+            echo "WARNING: Debian-family support is new and much less tested" >&2
+            if "$VERBOSE" = true; then
+                sudo apt-get install -y sshpass
+            else
+                sudo apt-get install -y sshpass &> /dev/null
             fi
         fi
     fi
