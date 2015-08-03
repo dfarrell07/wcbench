@@ -1,6 +1,6 @@
-## Wrapped CBench (WCBench)
+[![Project Chatroom][1]][2]
 
-[![Join the chat at https://gitter.im/dfarrell07/wcbench](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/dfarrell07/wcbench?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+## Wrapped CBench (WCBench)
 
 CBench, wrapped in stuff that makes it useful.
 
@@ -94,8 +94,7 @@ stats, starts/stops ODL, and runs CBench against ODL.
 
 In more detail, the `wcbench.sh` script supports:
 
-* Trivially cloning, building and installing CBench via the
-[oflops repo](https://github.com/andi-bigswitch/oflops).
+* Trivially cloning, building and installing CBench via the [oflops repo][6].
 * Changing a set of CBench params (MS_PER_TEST, TEST_PER_SWITCH and
 CBENCH_WARMUP) to easily set the overall length of a CBench run in minutes.
 Long CBench runs typically produce results with a lower standard deviation.
@@ -145,21 +144,20 @@ deleting ODL and CBench sources and binaries.
 The `loop_wcbench.sh` script is a fairly simple wrapper around `wcbench.sh`
 ("I hear you like wrappers, so I wrapped your wrapper in a wrapper"). Its
 reason for existing is to enable long series of repeated WCBench runs. As
-described in the [WCBench Results](https://github.com/dfarrell07/cbench_regression#wcbench-results)
-section, these results will be stored in a CSV file and can be analyzed with
-`stats.py`, as described in the [Usage Details: stats.py](https://github.com/dfarrell07/cbench_regression#usage-details-statspy)
-section. Doing many WCBench runs allows trends over time to be observed (like
-decreasing perf or increasing RAM). More results can also yield more
-representative stats.
+described in the [WCBench Results][3] section, these results will be stored
+in a CSV file and can be analyzed with `stats.py`, as described in the
+[Usage Details: stats.py][4] section. Doing many WCBench runs allows trends
+over time to be observed (like decreasing perf or increasing RAM). More
+results can also yield more representative stats.
 
 In more detail, the `loop_wcbench.sh` script supports:
 
 * Running WCBench against ODL a given number of times, without restarting ODL
 between runs. This test revealed the perf degradation over time described in
-[bug 1395](https://bugs.opendaylight.org/show_bug.cgi?id=1395).
+[bug 1395][5].
 * Running WCBench against ODL a given number of times, restarting ODL between
-runs. This acted as a control when finding [bug 1395](https://bugs.opendaylight.org/show_bug.cgi?id=1395), as
-restarting ODL between runs mitigated perf decreases.
+runs. This acted as a control when finding [bug 1395][5], as restarting ODL
+between runs mitigated perf decreases.
 * Pass run length info to WCBench, causing WCBench runs to last for the given
 number of minutes. Note that longer runs seem to result in lower standard
 deviation flows/sec results.
@@ -171,9 +169,8 @@ the process is properly pegged.
 
 The `stats.py` script parses the output of `wcbench.sh`, which is stored in
 the file pointed at by the `RESULTS_FILE` variable in `wcbench.sh`. See the
-[WCBench Results](https://github.com/dfarrell07/cbench_regression#wcbench-results)
-section for more info on the results file. Both pure stats and graphs of
-results are supported by `stats.py`.
+[WCBench Results][7] section for more info on the results file. Both pure
+stats and graphs of results are supported by `stats.py`.
 
 Any set of names for data points can be given to the `-s` flag to calculate
 their stats and to the `-g` flag to graph them against run numbers. All stats
@@ -242,7 +239,7 @@ Examples are useful:
 
 Graph results:
 
-![Graphs of flows/sec and used RAM against run number](https://cloud.githubusercontent.com/assets/880273/3562723/5b854538-0a02-11e4-8fb1-dd1544d20ae6.png)
+![Graphs of flows/sec and used RAM against run number][8]
 
 
 ### WCBench Results
@@ -253,7 +250,7 @@ Results from `wcbench.sh` are stored in the file pointed at by the
 `~/results.csv` by default. As you can guess from the file name, results are
 stored in CSV format. Note that this format was chosen because it's what's
 consumed by the Jenkins Plot Plugin, which ODL uses to [automatically run a
-subset of the functionality provided by WCBench against ODL builds](https://jenkins.opendaylight.org/integration/job/integration-master-performance-plugin/plot/).
+subset of the functionality provided by WCBench against ODL builds][9].
 
 Note that manually modifying the results file (adding/deleting lines) will
 cause incorrect run number values.
@@ -290,7 +287,8 @@ OpenDaylight+WCBench environment up-and-running trivially easily. Vagrant also
 allows folks on otherwise unsupported operating systems (Ubuntu, Debian,
 Windows) to use WCBench.
 
-If you don't have Vagrant installed already, head over to [their docs](https://docs.vagrantup.com/v2/installation/) and get that knocked out.
+If you don't have Vagrant installed already, head over to [their docs][10] and
+get that knocked out.
 
 If you haven't already, you'll need to clone the WCBench repo:
 
@@ -298,7 +296,8 @@ If you haven't already, you'll need to clone the WCBench repo:
 [~]$ git clone https://github.com/dfarrell07/wcbench.git
 ```
 
-You can now trivially stand up a VM with OpenDaylight+CBench+WCBench properly configured:
+You can now trivially stand up a VM with OpenDaylight+CBench+WCBench properly
+configured:
 
 ```
 [~/wcbench]$ vagrant up
@@ -356,9 +355,11 @@ to point at `/home/vagrant/wcbench/`, if you'd like to put it there by default.
 RESULTS_FILE=$BASE_DIR/wcbench/"results.csv"
 ```
 
-You can now generate graphs and stats, as described in the [Usage Details: stats.py](#user-content-usage-details-statspy) section.
+You can now generate graphs and stats, as described in the [Usage Details:
+stats.py][12] section.
 
-To run long batches of tests, use `loop_wcbench.sh`, as described in [Usage Details: loop_wcbench.sh](#user-content-usage-details-loop_wcbenchsh).
+To run long batches of tests, use `loop_wcbench.sh`, as described in [Usage
+Details: loop_wcbench.sh][13].
 
 Once you're done, you can kill OpenDaylight like this:
 
@@ -367,8 +368,8 @@ Once you're done, you can kill OpenDaylight like this:
 Stopping OpenDaylight
 ```
 
-Unless you want a fresh WCBench Vagrant box, you can save yourself some time
-at your next `vagrant up` by suspending (instead of destroying) the box:
+Unless you want a fresh WCBench Vagrant box, you can save yourself some time at
+your next `vagrant up` by suspending (instead of destroying) the box:
 
 ```
 # On my local system
@@ -378,12 +379,12 @@ at your next `vagrant up` by suspending (instead of destroying) the box:
 
 ### Detailed Walkthrough: Manual
 
-This walkthrough describes how to setup a system for WCBench testing,
-starting with a totally fresh [Fedora 20 Cloud](http://fedoraproject.org/get-fedora#clouds)
-install. I'm going to leave out the VM creation details for the sake of space.
-As long as you can SSH into the machine and it has access to the Internet, all
-of the following should work as-is. Note that this process has also been tested
-on CentOS 6.5 (so obviously should work on RHEL).
+This walkthrough describes how to setup a system for WCBench testing, starting
+with a totally fresh [Fedora 20 Cloud][11] install. I'm going to leave out the
+VM creation details for the sake of space. As long as you can SSH into the
+machine and it has access to the Internet, all of the following should work
+as-is. Note that this process has also been tested on CentOS 6.5 (so obviously
+should work on RHEL).
 
 I suggest starting by adding the WCBench VM to your `~/.ssh/config` file, to
 allow quick access without having to remember details.
@@ -421,7 +422,7 @@ From my local system:
 [~]$ rsync ~/.dotfiles/linux_setup.sh wcbench:/home/fedora
 ```
 
-That `linux_setup.sh` script can be found [here](https://github.com/dfarrell07/dotfiles/blob/master/linux_setup.sh).
+That `linux_setup.sh` script can be found [here][14].
 
 Back on the remote VM:
 
@@ -442,8 +443,8 @@ You may want to setup your SSH info on the VM and clone via SSH if you're going
 to be contributing (which is encouraged!).
 
 NB: Git was installed for me during the `./linux_setup.sh -t` step, as that
-cloned my [.dotfiles repo](https://github.com/dfarrell07/dotfiles/). If you
-don't have git, install it with `sudo yum install git -y`.
+cloned my [.dotfiles repo][15]. If you don't have git, install it with `sudo
+yum install git -y`.
 
 ```
 [fedora@dfarrell-wcbench ~]$ git clone https://github.com/dfarrell07/wcbench.git
@@ -497,14 +498,15 @@ Average responses/second: 22384.52
 /home/fedora/results.csv not found or empty, building fresh one
 ```
 
-I suggest copying your results.csv file back to your local system for
-analysis, especially if you want to generate graphs. From my local system:
+I suggest copying your results.csv file back to your local system for analysis,
+especially if you want to generate graphs. From my local system:
 
 ```
 [~/wcbench]$ rsync wcbench:/home/fedora/results.csv .
 ```
 
-You can now generate graphs and stats, as described in the [Usage Details: stats.py](#user-content-usage-details-statspy) section.
+You can now generate graphs and stats, as described in the [Usage Details:
+stats.py][12] section.
 
 If you'd like to collect some serious long-term data, use the `loop_wcbench.sh`
 script (of course, back on the VM).
@@ -538,18 +540,35 @@ Removing /usr/local/bin/cbench
 Contributions are encuraged! Contributions are encuraged! Contributions are
 encuraged! <- I can't say this enough.
 
-The best way to contribute code is to jump on an existing [GitHub Issue](https://github.com/dfarrell07/wcbench/issues)
-or raise your own, then fork the code, make your changes and submit a pull
-request to merge your changes back into the main codebase.
+The best way to contribute code is to jump on an existing [GitHub Issue][16] or
+raise your own, then fork the code, make your changes and submit a pull request
+to merge your changes back into the main codebase.
 
-Bugs or feature requests should be raised as [Issues](https://github.com/dfarrell07/wcbench/issues).
+Bugs or feature requests should be raised as [Issues][16].
 
 Note that the code is Open Source under a BSD 2-clause license.
 
 ### Contact
 
-For feature requests, bug reports and questions please raise an [Issue](https://github.com/dfarrell07/wcbench/issues).
+For feature requests, bug reports and questions please raise an [Issue][16].
 Daniel Farrell is the primary developer of this tool. He can be contacted
 directly at dfarrell@redhat.com or on IRC (dfarrell07 on Freenode). **Prefer
 public, documented communication like Issues over direct 1-1 communication.
 This is an Open Source project. Keep the community in the loop.**
+
+[1]: https://badges.gitter.im/Join%20Chat.svg
+[2]: https://gitter.im/dfarrell07/wcbench?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
+[3]: https://github.com/dfarrell07/cbench_regression#wcbench-results
+[4]: https://github.com/dfarrell07/cbench_regression#usage-details-statspy
+[5]: https://bugs.opendaylight.org/show_bug.cgi?id=1395
+[6]: https://github.com/andi-bigswitch/oflops
+[7]: https://github.com/dfarrell07/cbench_regression#wcbench-results
+[8]: https://cloud.githubusercontent.com/assets/880273/3562723/5b854538-0a02-11e4-8fb1-dd1544d20ae6.png
+[9]: https://jenkins.opendaylight.org/integration/job/integration-master-performance-plugin/plot/
+[10]: https://docs.vagrantup.com/v2/installation/
+[11]: http://fedoraproject.org/get-fedora#clouds
+[12]: #user-content-usage-details-statspy
+[13]: #user-content-usage-details-loop_wcbenchsh
+[14]: https://github.com/dfarrell07/dotfiles/blob/master/linux_setup.sh
+[15]: https://github.com/dfarrell07/dotfiles/
+[16]: https://github.com/dfarrell07/wcbench/issues
