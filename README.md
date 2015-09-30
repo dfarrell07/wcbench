@@ -423,7 +423,7 @@ Alternatively you can choose to install screen by using,
 [~]$ dnf install -y screen
 ```
 
-Once your VM is updated and tmux is installed, drop into a tmux session.
+Once your VM is updated and either tmux or screen is installed, drop into a tmux session.
 
 ```
 [fedora@dfarrell-wcbench ~]$ tmux new
