@@ -416,11 +416,11 @@ log out of the system and leave them running. To install tmux you can run the fo
 VM.
 
 ```
-[~]$ dnf install -y tmux
+[~]$ sudo dnf install -y tmux
 ```
 Alternatively you can choose to install screen by using,
 ```
-[~]$ dnf install -y screen
+[~]$ sudo dnf install -y screen
 ```
 
 Once your VM is updated and either tmux or screen is installed, drop into a tmux session.
