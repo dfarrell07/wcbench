@@ -412,27 +412,18 @@ Warning: Permanently added '10.3.9.110' (RSA) to the list of known hosts.
 ```
 
 You'll need a utility like screen or tmux, so you can start long-running tests,
-log out of the system and leave them running. My Linux configurations are very
-scripted, so here's how I install tmux and its configuration file. You're
-welcome to copy this.
-
-From my local system:
+log out of the system and leave them running. To install tmux you can run the following on the 
+VM.
 
 ```
-[~]$ rsync ~/.dotfiles/linux_setup.sh wcbench:/home/fedora
+[~]$ sudo dnf install -y tmux
+```
+Alternatively you can choose to install screen by using,
+```
+[~]$ sudo dnf install -y screen
 ```
 
-That `linux_setup.sh` script can be found [here][14].
-
-Back on the remote VM:
-
-```
-[fedora@dfarrell-wcbench ~]$ sudo yum update -y; ./linux_setup.sh -t
-```
-
-Go get some coffee, this will take a while.
-
-Once your VM is updated and tmux is installed, drop into a tmux session.
+Once your VM is updated and either tmux or screen is installed, drop into a tmux session.
 
 ```
 [fedora@dfarrell-wcbench ~]$ tmux new
